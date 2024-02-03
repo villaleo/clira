@@ -1,19 +1,15 @@
+#![allow(dead_code)]
+
 use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct DatabaseState {
     #[serde(rename = "lastItemId")]
     pub last_item_id: Option<u32>,
     pub epics: HashMap<u32, Epic>,
     pub stories: HashMap<u32, Story>,
-}
-
-#[derive(Clone, Debug)]
-pub enum Feature {
-    Epic(Epic),
-    Story(Story),
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
