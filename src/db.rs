@@ -56,6 +56,7 @@ impl JiraDatabase {
             0u32
         };
 
+        state.last_item_id = Some(id);
         state.epics.insert(id, epic.clone());
         self.db.write(&state)?;
         Ok(id)
@@ -81,6 +82,7 @@ impl JiraDatabase {
         epic.story_ids.push(id);
         state.epics.insert(epic_id, epic);
 
+        state.last_item_id = Some(id);
         state.stories.insert(id, story.clone());
         self.db.write(&state)?;
         Ok(id)
