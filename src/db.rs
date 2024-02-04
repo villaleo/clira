@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::fs;
+use std::{collections::HashMap, fs};
 
 use anyhow::{anyhow, Result};
 
@@ -21,14 +21,20 @@ struct JSONFileDatabase {
 
 impl JiraDatabase {
     /// `new` creates a new instance of the `JiraDatabase`. There should be a single instance of
-    /// this type to avoid any issues when reading and writing to disk.
+    /// this type to avoid any issues when reading and writing to disk. Returns `JiraDatabase`
+    /// wrapped in `Result`.
     ///
-    pub fn new(file_path: &str) -> Self {
-        Self {
-            db: Box::new(JSONFileDatabase {
-                file_path: file_path.to_string()
-            })
-        }
+    /// `Err` means there was a problem initializing the database.
+    ///
+    pub fn new(file_path: &str) -> Result<Self> {
+        let db = JSONFileDatabase { file_path: file_path.to_string() };
+        let state = DatabaseState {
+            last_item_id: None,
+            epics: HashMap::new(),
+            stories: HashMap::new(),
+        };
+        db.write(&state)?;
+        Ok(Self { db: Box::new(db) })
     }
 
     /// `read` reads the data from the database and returns a `DatabaseState` wrapped in a
