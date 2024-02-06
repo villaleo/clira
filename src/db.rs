@@ -6,10 +6,14 @@ use anyhow::{anyhow, Result};
 
 use crate::models::{DatabaseState, Epic, Status, Story};
 
+/// `JiraDatabase` is the main database for the application to interact with. There should be at
+/// most one instance of this type. Instances need not be mutable.
 pub struct JiraDatabase {
     pub db: Box<dyn Database>,
 }
 
+/// `Database` outlines the main functionalities of a database. Use `read` to fetch the current
+/// state of the database.
 pub trait Database {
     fn read(&self) -> Result<DatabaseState>;
     fn write(&self, state: &DatabaseState) -> Result<()>;
@@ -25,7 +29,6 @@ impl JiraDatabase {
     /// wrapped in `Result`.
     ///
     /// `Err` means there was a problem initializing the database.
-    ///
     pub fn new(file_path: &str) -> Result<Self> {
         let db = JSONFileDatabase {
             file_path: file_path.to_string(),
@@ -43,7 +46,6 @@ impl JiraDatabase {
     /// `Result`.
     ///
     /// `Err` means there was a problem reading from the underlying database.
-    ///
     pub fn read(&self) -> Result<DatabaseState> {
         let state = self.db.read()?;
         Ok(state)
@@ -55,7 +57,6 @@ impl JiraDatabase {
     /// `Err` will explain the cause, but may be for one of the following reasons:
     ///   - There was a problem reading from the database
     ///   - There was a problem writing to the database
-    ///
     pub fn create_epic(&self, epic: &Epic) -> Result<u32> {
         let mut state = self.read()?;
         let id = if let Some(prev_id) = state.last_item_id {
@@ -77,7 +78,6 @@ impl JiraDatabase {
     ///   - There was a problem reading from the database
     ///   - An epic does not exist for the input parameter `epic_id`
     ///   - There was a problem writing to the database
-    ///
     pub fn create_story(&self, story: &Story, epic_id: u32) -> Result<u32> {
         let mut state = self.read()?;
         let id = if let Some(prev_id) = state.last_item_id {
@@ -107,7 +107,6 @@ impl JiraDatabase {
     ///   - There was a problem reading from the database
     ///   - An epic does not exist for the input parameter `id`
     ///   - There was a problem writing to the database
-    ///
     pub fn update_epic_status(&self, id: u32, status: Status) -> Result<()> {
         let mut state = self.read()?;
         let mut epic = state
@@ -129,7 +128,6 @@ impl JiraDatabase {
     ///   - There was a problem reading from the database
     ///   - An story does not exist for the input parameter `id`
     ///   - There was a problem writing to the database
-    ///
     pub fn update_story_status(&self, id: u32, status: Status) -> Result<()> {
         let mut state = self.read()?;
         let mut story = state
@@ -151,7 +149,6 @@ impl JiraDatabase {
     ///   - There was a problem reading from the database
     ///   - An epic does not exist for the input parameter `id`
     ///   - There was a problem writing to the database
-    ///
     pub fn delete_epic(&self, id: u32) -> Result<()> {
         let mut state = self.read()?;
         let _ = state
@@ -171,7 +168,6 @@ impl JiraDatabase {
     ///   - There was a problem reading from the database
     ///   - An epic does not exist for the input parameter `id`
     ///   - There was a problem writing to the database
-    ///
     pub fn delete_story(&self, story_id: u32, epic_id: u32) -> Result<()> {
         let mut state = self.read()?;
         let mut epic = state
@@ -208,16 +204,20 @@ impl Database for JSONFileDatabase {
     }
 }
 
+/// `test_utils` contains utilities used for testing.
 pub mod test_utils {
     use std::{cell::RefCell, collections::HashMap};
 
     use super::*;
 
+    /// `MockDatabase` is a wrapper over the state of a database. It uses the interior
+    /// mutability design pattern to keep `JiraDatabase`'s immutability state.
     pub struct MockDatabase {
         last_written_state: RefCell<DatabaseState>,
     }
 
     impl MockDatabase {
+        /// `new` returns an instance of `MockDatabase` initialized and ready to use.
         pub fn new() -> Self {
             Self {
                 last_written_state: RefCell::new(DatabaseState {

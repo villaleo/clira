@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, default, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
+/// An `Action` represents the different types of actions that are accepted from
+/// user input.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Action {
     NavigateToEpicDetail { epic_id: u32 },
@@ -18,6 +20,8 @@ pub enum Action {
     Exit,
 }
 
+/// `DatabaseState` represents the state of the database. It is the base type that is
+/// serialized into the JSON file for persistence.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct DatabaseState {
     #[serde(rename = "lastItemId")]
@@ -26,8 +30,11 @@ pub struct DatabaseState {
     pub stories: HashMap<u32, Story>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+/// `Status` models the different states that an `Epic` or `Story` can be in. `Open` is
+/// the default state.
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub enum Status {
+    #[default]
     #[serde(rename = "open")]
     Open,
     #[serde(rename = "inProgress")]
@@ -38,6 +45,11 @@ pub enum Status {
     Closed,
 }
 
+/// `Epic` represents an epic in the `JiraDatabase`. It is a high-level milestone that can
+/// be broken down into smaller, achievable chunks. These chunks are called stories. Epics
+/// may have many children stories.
+///
+/// If an epic is deleted, all its children stories are deleted too.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Epic {
     pub name: String,
@@ -47,6 +59,8 @@ pub struct Epic {
     pub story_ids: Vec<u32>,
 }
 
+/// A `Story` is a story in the `JiraDatabase`. It is a smaller task that is easier to acheive
+/// compared to a story. Each story must have at most one parent `Epic` to associate to.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Story {
     pub name: String,

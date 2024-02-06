@@ -11,20 +11,24 @@ use tabled::{
 
 use crate::{db::JiraDatabase, models::Action};
 
+/// A `Page` is a view that can be drawn on the terminal.
 pub trait Page {
     fn draw(&self) -> anyhow::Result<()>;
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>>;
 }
 
+/// `HomePage` is the first page that a user sees when running the application.
 pub struct HomePage {
     pub db: Rc<JiraDatabase>,
 }
 
+/// `EpicDetail` is a page with the details of an epic.
 pub struct EpicDetail {
     pub epic_id: u32,
     pub db: Rc<JiraDatabase>,
 }
 
+/// `StoryDetail` is a page with details of a story.
 pub struct StoryDetail {
     pub story_id: u32,
     pub epic_id: u32,
