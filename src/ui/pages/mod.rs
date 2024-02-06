@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+pub mod prompts;
+
 use std::rc::Rc;
 
 use anyhow::anyhow;
