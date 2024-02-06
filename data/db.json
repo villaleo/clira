@@ -1,0 +1,26 @@
+{
+  "lastItemId": 2,
+  "epics": {
+    "1": {
+      "name": "Create Chat Service",
+      "description": "Develop a backend service using gPRC to communicate with service X.",
+      "status": "open",
+      "storyIds": []
+    },
+    "0": {
+      "name": "Configure CI/CD",
+      "description": "Create and document the CI/CD pipelines for the chat service.",
+      "status": "open",
+      "storyIds": [
+        2
+      ]
+    }
+  },
+  "stories": {
+    "2": {
+      "name": "Create GitHub Workflow",
+      "description": "Create GitHub Action and have it dispatch on Y.",
+      "status": "open"
+    }
+  }
+}

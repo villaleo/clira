@@ -1,7 +1,9 @@
-mod models;
+#![allow(dead_code)]
+
 mod db;
+mod models;
 mod ui;
 
 fn main() {
-    // TODO
+    unimplemented!();
 }

@@ -1,8 +1,22 @@
 #![allow(dead_code)]
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Action {
+    NavigateToEpicDetail { epic_id: u32 },
+    NavigateToStoryDetail { story_id: u32, epic_id: u32 },
+    NavigateToPreviousPage,
+    CreateEpic,
+    CreateStory { epic_id: u32 },
+    UpdateEpicStatus { epic_id: u32 },
+    UpdateStoryStatus { story_id: u32 },
+    DeleteEpic { epic_id: u32 },
+    DeleteStory { story_id: u32, epic_id: u32 },
+    Exit,
+}
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct DatabaseState {
@@ -56,7 +70,18 @@ impl Story {
         Self {
             name: name.to_owned(),
             description: description.to_owned(),
-            status: Status::Open
+            status: Status::Open,
         }
+    }
+}
+
+impl Display for Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Open => "Open",
+            Self::InProgress => "In Progress",
+            Self::Resolved => "Resolved",
+            Self::Closed => "Closed",
+        })
     }
 }
