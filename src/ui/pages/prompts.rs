@@ -26,12 +26,34 @@ impl Prompt {
 }
 
 fn create_epic() -> Epic {
-    let (name, description) = read_feature();
+    println!("Enter name:");
+    let mut name = read_input();
+    loop {
+        if name.is_empty() {
+            println!("Name cannot be empty. Please enter a name:");
+            name = read_input();
+        } else {
+            break;
+        }
+    }
+    println!("Enter description:");
+    let description = read_input();
     Epic::new(&name, &description)
 }
 
 fn create_story() -> Story {
-    let (name, description) = read_feature();
+    println!("Enter name:");
+    let mut name = read_input();
+    loop {
+        if name.is_empty() {
+            println!("Name cannot be empty. Please enter a name:");
+            name = read_input();
+        } else {
+            break;
+        }
+    }
+    println!("Enter description:");
+    let description = read_input();
     Story::new(&name, &description)
 }
 
@@ -65,16 +87,6 @@ fn update_status() -> Option<Status> {
 
 fn read_input() -> String {
     let mut input = String::new();
-    stdin()
-        .read_line(&mut input)
-        .expect("failed to read input. please try again");
+    stdin().read_line(&mut input).unwrap();
     input.trim().into()
-}
-
-fn read_feature() -> (String, String) {
-    println!("Enter name:");
-    let name = read_input();
-    println!("Enter description:");
-    let description = read_input();
-    (name, description)
 }
