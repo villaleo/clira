@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+mod format;
 pub mod prompts;
 
 use std::{any::Any, rc::Rc};
@@ -11,7 +12,7 @@ use tabled::{
     settings::{self, object::Rows, style::LineText},
 };
 
-use crate::{db::JiraDatabase, models::Action};
+use crate::{db::JiraDatabase, models::Action, ui::pages::format::constrain_text};
 
 /// A `Page` is a view that can be drawn on the terminal.
 pub trait Page {
@@ -40,6 +41,9 @@ pub struct StoryDetail {
     pub epic_id: u32,
     pub db: Rc<JiraDatabase>,
 }
+
+const MAX_NAME_LINE_WIDTH: usize = 55;
+const MAX_DESCRIPTION_LINE_WIDTH: usize = 75;
 
 impl Page for HomePage {
     fn draw(&self) -> anyhow::Result<()> {
@@ -106,7 +110,10 @@ impl Page for EpicDetail {
             .epics
             .get(&self.epic_id)
             .ok_or_else(|| anyhow!("could not find epic"))?;
-        builder.push_record([&epic.name, &epic.description]);
+        builder.push_record([
+            &constrain_text(&epic.name, MAX_NAME_LINE_WIDTH),
+            &constrain_text(&epic.description, MAX_DESCRIPTION_LINE_WIDTH),
+        ]);
 
         let table = builder
             .build()
@@ -137,7 +144,11 @@ impl Page for EpicDetail {
                 .stories
                 .get(&id)
                 .ok_or_else(|| anyhow!("could not find story"))?;
-            builder.push_record([id.to_string(), story.name.clone(), story.status.to_string()]);
+            builder.push_record([
+                id.to_string(),
+                constrain_text(story.name.as_str(), MAX_NAME_LINE_WIDTH),
+                constrain_text(&story.status.to_string(), MAX_DESCRIPTION_LINE_WIDTH),
+            ]);
         }
 
         let table = builder
@@ -198,7 +209,10 @@ impl Page for StoryDetail {
             .stories
             .get(&self.story_id)
             .ok_or_else(|| anyhow!("could not find story"))?;
-        builder.push_record([&story.name, &story.description]);
+        builder.push_record([
+            constrain_text(&story.name, MAX_NAME_LINE_WIDTH),
+            constrain_text(&story.description, MAX_DESCRIPTION_LINE_WIDTH),
+        ]);
 
         let table = builder
             .build()
