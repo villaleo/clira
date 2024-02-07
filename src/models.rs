@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, default, fmt::Display};
+use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,7 @@ pub enum Action {
 
 /// `DatabaseState` represents the state of the database. It is the base type that is
 /// serialized into the JSON file for persistence.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct DatabaseState {
     #[serde(rename = "lastItemId")]
     pub last_item_id: Option<u32>,
@@ -32,9 +32,8 @@ pub struct DatabaseState {
 
 /// `Status` models the different states that an `Epic` or `Story` can be in. `Open` is
 /// the default state.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Status {
-    #[default]
     #[serde(rename = "open")]
     Open,
     #[serde(rename = "inProgress")]
@@ -50,7 +49,7 @@ pub enum Status {
 /// may have many children stories.
 ///
 /// If an epic is deleted, all its children stories are deleted too.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Epic {
     pub name: String,
     pub description: String,
@@ -61,7 +60,7 @@ pub struct Epic {
 
 /// A `Story` is a story in the `JiraDatabase`. It is a smaller task that is easier to acheive
 /// compared to a story. Each story must have at most one parent `Epic` to associate to.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Story {
     pub name: String,
     pub description: String,

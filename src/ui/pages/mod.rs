@@ -47,10 +47,11 @@ impl Page for HomePage {
         builder.push_record(["ID", "Name", "Status"]);
 
         let db = self.db.read()?;
-        db.epics.keys().sorted().for_each(|id| {
-            let epic = db.epics.get(id).cloned().unwrap();
-            builder.push_record([id.to_string(), epic.name, epic.status.to_string()]);
-        });
+        for id in db.epics.keys().sorted() {
+            let epic = &db.epics[id];
+            builder.push_record([id.to_string(), epic.name.clone(), epic.status.to_string()]);
+        }
+
         let table = builder
             .build()
             .with(settings::Style::rounded())
@@ -94,8 +95,12 @@ impl Page for EpicDetail {
         let mut builder = builder::Builder::new();
         builder.push_record(["Name", "Description"]);
 
-        let epic = db.epics.get(&self.epic_id).cloned().unwrap();
-        builder.push_record([epic.name, epic.description]);
+        let epic = db
+            .epics
+            .get(&self.epic_id)
+            .ok_or_else(|| anyhow!("could not find epic"))?;
+        builder.push_record([&epic.name, &epic.description]);
+
         let table = builder
             .build()
             .with(settings::Style::rounded())
@@ -121,9 +126,13 @@ impl Page for EpicDetail {
 
         story_ids.sort();
         for id in story_ids {
-            let story = db.stories.get(&id).cloned().unwrap();
-            builder.push_record([id.to_string(), story.name, story.status.to_string()]);
+            let story = db
+                .stories
+                .get(&id)
+                .ok_or_else(|| anyhow!("could not find story"))?;
+            builder.push_record([id.to_string(), story.name.clone(), story.status.to_string()]);
         }
+
         let table = builder
             .build()
             .with(settings::Style::rounded())
@@ -145,6 +154,9 @@ impl Page for EpicDetail {
         match input {
             "b" => Ok(Some(Action::NavigateToPreviousPage)),
             "u" => Ok(Some(Action::UpdateEpicStatus {
+                epic_id: self.epic_id,
+            })),
+            "d" => Ok(Some(Action::DeleteEpic {
                 epic_id: self.epic_id,
             })),
             "n" => Ok(Some(Action::CreateStory {
@@ -175,8 +187,12 @@ impl Page for StoryDetail {
         let mut builder = builder::Builder::new();
         builder.push_record(["Name", "Description"]);
 
-        let story = db.stories.get(&self.story_id).cloned().unwrap();
-        builder.push_record([story.name, story.description]);
+        let story = db
+            .stories
+            .get(&self.story_id)
+            .ok_or_else(|| anyhow!("could not find story"))?;
+        builder.push_record([&story.name, &story.description]);
+
         let table = builder
             .build()
             .with(settings::Style::rounded())
@@ -277,7 +293,8 @@ mod tests {
             });
             let page = HomePage { db: db.clone() };
             let view_epic_action = page.action_from("invalid");
-            assert!(view_epic_action.is_err());
+            assert!(view_epic_action.is_ok());
+            assert!(view_epic_action.unwrap().is_none());
         }
 
         #[test]
@@ -406,7 +423,8 @@ mod tests {
             let page = EpicDetail { db, epic_id };
 
             let view_story_action = page.action_from("invalid");
-            assert!(view_story_action.is_err());
+            assert!(view_story_action.is_ok());
+            assert!(view_story_action.unwrap().is_none());
         }
     }
 
