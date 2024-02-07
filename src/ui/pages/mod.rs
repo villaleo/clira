@@ -43,10 +43,17 @@ pub struct StoryDetail {
 
 impl Page for HomePage {
     fn draw(&self) -> anyhow::Result<()> {
+        let db = self.db.read()?;
+        if db.epics.is_empty() {
+            println!("There are no epics. Create a new epic with `n`.");
+            println!();
+            println!("(q) quit | (n) new epic | <ID> view epic");
+            return Ok(());
+        }
+
         let mut builder = builder::Builder::new();
         builder.push_record(["ID", "Name", "Status"]);
 
-        let db = self.db.read()?;
         for id in db.epics.keys().sorted() {
             let epic = &db.epics[id];
             builder.push_record([id.to_string(), epic.name.clone(), epic.status.to_string()]);
