@@ -42,8 +42,8 @@ pub struct StoryDetail {
     pub db: Rc<JiraDatabase>,
 }
 
-const MAX_NAME_LINE_WIDTH: usize = 55;
-const MAX_DESCRIPTION_LINE_WIDTH: usize = 75;
+pub const MAX_NAME_LENGTH: usize = 55;
+pub const MAX_DESCRIPTION_LENGTH: usize = 75;
 
 impl Page for HomePage {
     fn draw(&self) -> anyhow::Result<()> {
@@ -111,8 +111,8 @@ impl Page for EpicDetail {
             .get(&self.epic_id)
             .ok_or_else(|| anyhow!("could not find epic"))?;
         builder.push_record([
-            &constrain_text(&epic.name, MAX_NAME_LINE_WIDTH),
-            &constrain_text(&epic.description, MAX_DESCRIPTION_LINE_WIDTH),
+            &constrain_text(&epic.name, MAX_NAME_LENGTH),
+            &constrain_text(&epic.description, MAX_DESCRIPTION_LENGTH),
         ]);
 
         let table = builder
@@ -131,6 +131,7 @@ impl Page for EpicDetail {
         let mut story_ids = epic.story_ids.clone();
         if story_ids.is_empty() {
             println!("This epic has no stories.\n");
+            println!();
             println!("(b) back | (u) update | (d) delete | (n) new story | <ID> view story");
             return Ok(());
         }
@@ -146,8 +147,8 @@ impl Page for EpicDetail {
                 .ok_or_else(|| anyhow!("could not find story"))?;
             builder.push_record([
                 id.to_string(),
-                constrain_text(story.name.as_str(), MAX_NAME_LINE_WIDTH),
-                constrain_text(&story.status.to_string(), MAX_DESCRIPTION_LINE_WIDTH),
+                constrain_text(story.name.as_str(), MAX_NAME_LENGTH),
+                constrain_text(&story.status.to_string(), MAX_DESCRIPTION_LENGTH),
             ]);
         }
 
@@ -210,8 +211,8 @@ impl Page for StoryDetail {
             .get(&self.story_id)
             .ok_or_else(|| anyhow!("could not find story"))?;
         builder.push_record([
-            constrain_text(&story.name, MAX_NAME_LINE_WIDTH),
-            constrain_text(&story.description, MAX_DESCRIPTION_LINE_WIDTH),
+            constrain_text(&story.name, MAX_NAME_LENGTH),
+            constrain_text(&story.description, MAX_DESCRIPTION_LENGTH),
         ]);
 
         let table = builder

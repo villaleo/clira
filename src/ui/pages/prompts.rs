@@ -1,6 +1,10 @@
+use std::cmp::Ordering;
 use std::io::stdin;
 
-use crate::models::{Epic, Status, Story};
+use crate::{
+    models::{Epic, Status, Story},
+    ui::pages::MAX_NAME_LENGTH,
+};
 
 /// `Prompt` has different members to display prompts and read user input.
 /// It acts as a level of indirection for testability.
@@ -29,11 +33,19 @@ fn create_epic() -> Epic {
     println!("Enter name:");
     let mut name = read_input();
     loop {
-        if name.is_empty() {
-            println!("Name cannot be empty. Please enter a name:");
-            name = read_input();
-        } else {
-            break;
+        match name.len().cmp(&MAX_NAME_LENGTH) {
+            Ordering::Less => {
+                if name.is_empty() {
+                    println!("Name cannot be empty. Please enter a name:");
+                    name = read_input();
+                } else {
+                    break;
+                }
+            }
+            Ordering::Equal | Ordering::Greater => {
+                println!("Names should be short and meaningful. Please provide a shorter name:");
+                name = read_input();
+            }
         }
     }
     println!("Enter description:");
@@ -45,11 +57,19 @@ fn create_story() -> Story {
     println!("Enter name:");
     let mut name = read_input();
     loop {
-        if name.is_empty() {
-            println!("Name cannot be empty. Please enter a name:");
-            name = read_input();
-        } else {
-            break;
+        match name.len().cmp(&MAX_NAME_LENGTH) {
+            Ordering::Less => {
+                if name.is_empty() {
+                    println!("Name cannot be empty. Please enter a name:");
+                    name = read_input();
+                } else {
+                    break;
+                }
+            }
+            Ordering::Equal | Ordering::Greater => {
+                println!("Names should be short and meaningful. Please provide a shorter name:");
+                name = read_input();
+            }
         }
     }
     println!("Enter description:");
