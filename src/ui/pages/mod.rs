@@ -73,14 +73,12 @@ impl Page for HomePage {
             "q" => Ok(Some(Action::Exit)),
             "n" => Ok(Some(Action::CreateEpic)),
             other => {
-                let epic_id = other
-                    .parse::<u32>()
-                    .or(Err(anyhow!("invalid action recieved")))?;
-                if self.db.read()?.epics.get(&epic_id).is_none() {
-                    Ok(None)
-                } else {
-                    Ok(Some(Action::NavigateToEpicDetail { epic_id }))
+                if let Ok(epic_id) = other.parse::<u32>() {
+                    if self.db.read()?.epics.contains_key(&epic_id) {
+                        return Ok(Some(Action::NavigateToEpicDetail { epic_id }));
+                    }
                 }
+                Ok(None)
             }
         }
     }
@@ -153,17 +151,15 @@ impl Page for EpicDetail {
                 epic_id: self.epic_id,
             })),
             other => {
-                let id = other
-                    .parse::<u32>()
-                    .or(Err(anyhow!("invalid action recieved")))?;
-                if self.db.read()?.stories.get(&id).is_none() {
-                    Ok(None)
-                } else {
-                    Ok(Some(Action::NavigateToStoryDetail {
-                        story_id: id,
-                        epic_id: self.epic_id,
-                    }))
+                if let Ok(story_id) = other.parse::<u32>() {
+                    if self.db.read()?.stories.contains_key(&story_id) {
+                        return Ok(Some(Action::NavigateToStoryDetail {
+                            story_id,
+                            epic_id: self.epic_id,
+                        }));
+                    }
                 }
+                Ok(None)
             }
         }
     }
