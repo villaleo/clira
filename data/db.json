@@ -1,25 +1,82 @@
 {
-  "lastItemId": 2,
+  "lastItemId": 11,
   "epics": {
-    "1": {
-      "name": "Create Chat Service",
-      "description": "Develop a backend service using gPRC to communicate with service X.",
-      "status": "open",
-      "storyIds": []
-    },
-    "0": {
-      "name": "Configure CI/CD",
-      "description": "Create and document the CI/CD pipelines for the chat service.",
+    "10": {
+      "name": "Bug Fixes",
+      "description": "Known bugs that need to be fixed.",
       "status": "open",
       "storyIds": [
-        2
+        11
+      ]
+    },
+    "5": {
+      "name": "Modifyable Features",
+      "description": "Implement functionality for epics and features to have their names and descriptions modifyable.",
+      "status": "open",
+      "storyIds": [
+        6,
+        7
+      ]
+    },
+    "0": {
+      "name": "Pretty CLI Output",
+      "description": "Ensure the output of `draw` methods result in pretty tables and clean, descriptive output.",
+      "status": "open",
+      "storyIds": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "8": {
+      "name": "Quality of Life",
+      "description": "A few small changes and additions that would improve the UI and UX.",
+      "status": "open",
+      "storyIds": [
+        9
       ]
     }
   },
   "stories": {
+    "3": {
+      "name": "Different Table Appearance",
+      "description": "Experiment with different tables to draw the stories and epics.",
+      "status": "open"
+    },
     "2": {
-      "name": "Create GitHub Workflow",
-      "description": "Create GitHub Action and have it dispatch on Y.",
+      "name": "Bordered Interface",
+      "description": "Add a border around the pages for a window-like appearance.",
+      "status": "open"
+    },
+    "4": {
+      "name": "Colored Status",
+      "description": "Experiment with colored status options! Why does color affect the width of strings?",
+      "status": "open"
+    },
+    "6": {
+      "name": "Modifyable Epic",
+      "description": "Epics can have their name and description updated when using `u` option on EpicDetail page.",
+      "status": "open"
+    },
+    "1": {
+      "name": "Format Long Descriptions",
+      "description": "Restrict the length of long descriptions to a fixed size for consistency and a cleaner look.",
+      "status": "inProgress"
+    },
+    "9": {
+      "name": "Cancellable Creations",
+      "description": "There is an option to cancel when creating a new epic or story.",
+      "status": "open"
+    },
+    "11": {
+      "name": "Ugly Table When No Epics",
+      "description": "The table is drawn horribly and superfluosly when there are no epics to list. Replace this with a message, notifying the user that there are no epics.",
+      "status": "open"
+    },
+    "7": {
+      "name": "Modifyable Story",
+      "description": "Stories can have their name and descriptions updated as well, when typing `u` on StoryDetail page.",
       "status": "open"
     }
   }
