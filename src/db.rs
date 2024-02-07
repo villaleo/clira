@@ -33,12 +33,15 @@ impl JiraDatabase {
         let db = JSONFileDatabase {
             file_path: file_path.to_string(),
         };
-        let state = DatabaseState {
-            last_item_id: None,
-            epics: HashMap::new(),
-            stories: HashMap::new(),
-        };
-        db.write(&state)?;
+        if let Ok(state) = db.read() {
+            db.write(&state)?;
+        } else {
+            db.write(&DatabaseState {
+                last_item_id: None,
+                epics: HashMap::new(),
+                stories: HashMap::new(),
+            })?;
+        }
         Ok(Self { db: Box::new(db) })
     }
 
