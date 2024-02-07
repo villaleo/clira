@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 mod format;
+pub mod menus;
 pub mod prompts;
 
 use std::{any::Any, rc::Rc};
@@ -12,7 +13,11 @@ use tabled::{
     settings::{self, object::Rows, style::LineText},
 };
 
-use crate::{db::JiraDatabase, models::Action, ui::pages::format::constrain_text};
+use crate::{
+    db::JiraDatabase,
+    models::Action,
+    ui::pages::{format::constrain_text, menus::Menu},
+};
 
 /// A `Page` is a view that can be drawn on the terminal.
 pub trait Page {
@@ -50,8 +55,7 @@ impl Page for HomePage {
         let db = self.db.read()?;
         if db.epics.is_empty() {
             println!("There are no epics. Create a new epic with `n`.");
-            println!();
-            println!("(q) quit | (n) new epic | <ID> view epic");
+            self.draw_menu();
             return Ok(());
         }
 
@@ -76,7 +80,7 @@ impl Page for HomePage {
             .to_string();
 
         println!("{}", table);
-        println!("(q) quit | (n) new epic | <ID> view epic");
+        self.draw_menu();
         Ok(())
     }
 
@@ -130,9 +134,8 @@ impl Page for EpicDetail {
 
         let mut story_ids = epic.story_ids.clone();
         if story_ids.is_empty() {
-            println!("This epic has no stories.\n");
-            println!();
-            println!("(b) back | (u) update | (d) delete | (n) new story | <ID> view story");
+            println!("This epic has no stories.");
+            self.draw_menu();
             return Ok(());
         }
 
@@ -165,7 +168,7 @@ impl Page for EpicDetail {
             .to_string();
 
         println!("{}", table);
-        println!("(b) back | (u) update | (d) delete | (n) new story | <ID> view story");
+        self.draw_menu();
         Ok(())
     }
 
@@ -228,7 +231,7 @@ impl Page for StoryDetail {
             .to_string();
 
         println!("{}", table);
-        println!("(b) back | (u) update | (d) delete");
+        self.draw_menu();
         Ok(())
     }
 
