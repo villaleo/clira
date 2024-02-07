@@ -2,7 +2,7 @@
 
 pub mod prompts;
 
-use std::rc::Rc;
+use std::{any::Any, rc::Rc};
 
 use anyhow::anyhow;
 use itertools::Itertools;
@@ -15,8 +15,12 @@ use crate::{db::JiraDatabase, models::Action};
 
 /// A `Page` is a view that can be drawn on the terminal.
 pub trait Page {
+    /// `draw` prints the page to the `stdout`.
     fn draw(&self) -> anyhow::Result<()>;
+    /// `action_from` returns an action, depending on the `input`.
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>>;
+    /// `as_any` is used to prepare to downcast a trait object to a concrete type.
+    fn as_any(&self) -> &dyn Any;
 }
 
 /// `HomePage` is the first page that a user sees when running the application.
@@ -79,6 +83,10 @@ impl Page for HomePage {
                 }
             }
         }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -159,6 +167,10 @@ impl Page for EpicDetail {
             }
         }
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl Page for StoryDetail {
@@ -198,6 +210,10 @@ impl Page for StoryDetail {
             })),
             _ => Ok(None),
         }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

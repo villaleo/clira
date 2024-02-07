@@ -185,6 +185,7 @@ impl JiraDatabase {
         epic.story_ids.remove(idx);
 
         state.epics.insert(epic_id, epic);
+        state.stories.remove(&story_id);
         self.db.write(&state)?;
         Ok(())
     }
