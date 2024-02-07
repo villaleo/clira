@@ -71,11 +71,13 @@ impl Navigator {
             Action::DeleteEpic { epic_id } => {
                 if (self.prompts.delete_epic)() {
                     self.db.delete_epic(epic_id)?;
+                    self.pages.pop();
                 }
             }
             Action::DeleteStory { story_id, epic_id } => {
                 if (self.prompts.delete_story)() {
                     self.db.delete_story(story_id, epic_id)?;
+                    self.pages.pop();
                 }
             }
             Action::Exit => self.pages.clear(),
