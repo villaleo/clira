@@ -88,6 +88,18 @@ impl Story {
     }
 }
 
+impl From<String> for Status {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "Open" => Self::Open,
+            "In Progress" => Self::InProgress,
+            "Resolved" => Self::Resolved,
+            "Closed" => Self::Closed,
+            _ => Self::Open,
+        }
+    }
+}
+
 impl Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {

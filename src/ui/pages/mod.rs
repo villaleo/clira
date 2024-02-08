@@ -10,13 +10,21 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use tabled::{
     builder,
-    settings::{self, object::Rows, style::LineText},
+    settings::{
+        self,
+        object::{Columns, Rows},
+        style::LineText,
+        Format,
+    },
 };
 
 use crate::{
     db::JiraDatabase,
     models::Action,
-    ui::pages::{format::constrain_text, menus::Menu},
+    ui::pages::{
+        format::{color_for_table_header, color_table_column, constrain_text},
+        menus::Menu,
+    },
 };
 
 /// A `Page` is a view that can be drawn on the terminal.
@@ -54,7 +62,7 @@ impl Page for HomePage {
     fn draw(&self) -> anyhow::Result<()> {
         let db = self.db.read()?;
         if db.epics.is_empty() {
-            println!("There are no epics. Create a new epic with `n`.");
+            println!("\n  There are no epics. Create a new epic with `n`.");
             self.draw_menu();
             return Ok(());
         }
@@ -77,6 +85,7 @@ impl Page for HomePage {
                 )
                 .offset(2),
             )
+            .modify(Columns::single(2), Format::content(color_table_column))
             .to_string();
 
         println!("{}", table);
@@ -122,19 +131,22 @@ impl Page for EpicDetail {
         let table = builder
             .build()
             .with(settings::Style::rounded())
+            .with(LineText::new(format!("Epic #{} (", &self.epic_id), Rows::first()).offset(2))
             .with(
-                LineText::new(
-                    format!("Epic #{} ({})", &self.epic_id, &epic.status),
-                    Rows::first(),
-                )
-                .offset(2),
+                LineText::new(format!("{}", &epic.status), Rows::first())
+                    .color(color_for_table_header(&epic.status.to_string()))
+                    .offset(2 + format!("Epic #{} (", &self.epic_id).len()),
+            )
+            .with(
+                LineText::new(")", Rows::first())
+                    .offset(2 + format!("Epic #{} ({}", &self.epic_id, &epic.status).len()),
             )
             .to_string();
         println!("{}", table);
 
         let mut story_ids = epic.story_ids.clone();
         if story_ids.is_empty() {
-            println!("This epic has no stories.");
+            println!("\n  This epic has no stories.");
             self.draw_menu();
             return Ok(());
         }
@@ -165,6 +177,7 @@ impl Page for EpicDetail {
                 )
                 .offset(2),
             )
+            .modify(Columns::single(2), Format::content(color_table_column))
             .to_string();
 
         println!("{}", table);
@@ -221,12 +234,15 @@ impl Page for StoryDetail {
         let table = builder
             .build()
             .with(settings::Style::rounded())
+            .with(LineText::new(format!("Story #{} (", &self.story_id), Rows::first()).offset(2))
             .with(
-                LineText::new(
-                    format!("Story #{} ({})", &self.story_id, &story.status),
-                    Rows::first(),
-                )
-                .offset(2),
+                LineText::new(format!("{}", &story.status), Rows::first())
+                    .color(color_for_table_header(&story.status.to_string()))
+                    .offset(2 + format!("Story #{} (", &self.story_id).len()),
+            )
+            .with(
+                LineText::new(")", Rows::first())
+                    .offset(2 + format!("Story #{} ({}", &self.story_id, &story.status).len()),
             )
             .to_string();
 

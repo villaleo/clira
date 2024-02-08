@@ -1,3 +1,8 @@
+use owo_colors::OwoColorize;
+use tabled::settings::Color;
+
+use crate::models::Status;
+
 /// `constrain_text` breaks a long, single-line string into a multi-line string
 /// with smart new-line breaks before a word begins. `line_limit` specifies how
 /// long a line needs to be before a new line is inserted.
@@ -17,9 +22,32 @@ pub fn constrain_text(text: &str, line_limit: usize) -> String {
     fmt_text.trim().to_owned()
 }
 
+/// `color_table_column` parses `status` as the `Status` type, colors it
+/// according to its state, and returns it again as a string. Non-status returns
+/// the input string.
+pub fn color_table_column(status: &str) -> String {
+    match Status::from(status.to_owned()) {
+        Status::Open => status.to_string(),
+        Status::InProgress => status.yellow().to_string(),
+        Status::Resolved => status.blue().to_string(),
+        Status::Closed => status.green().to_string(),
+    }
+}
+
+/// `color_for_table_header` returns the `Color` for the `status`, parsed as `Status`.
+pub fn color_for_table_header(status: &str) -> Color {
+    match Status::from(status.to_owned()) {
+        Status::Open => Color::empty(),
+        Status::InProgress => Color::FG_YELLOW,
+        Status::Resolved => Color::FG_BLUE,
+        Status::Closed => Color::FG_GREEN,
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::constrain_text;
+    use super::*;
+    use crate::ui::pages::format::color_table_column;
 
     #[test]
     fn constrain_text_should_succeed() {
@@ -35,5 +63,28 @@ mod tests {
             constrain_text(text, 10usize),
             "This will\nbe very\ninteresting"
         )
+    }
+
+    #[test]
+    fn color_table_column_should_succeed() {
+        assert_eq!(color_table_column("foo"), "foo");
+        assert_eq!(color_table_column("Open"), "Open");
+        assert_eq!(
+            color_table_column("In Progress"),
+            "In Progress".yellow().to_string()
+        );
+        assert_eq!(
+            color_table_column("Resolved"),
+            "Resolved".blue().to_string()
+        );
+        assert_eq!(color_table_column("Closed"), "Closed".green().to_string());
+    }
+
+    #[test]
+    fn color_for_table_header_should_succeed() {
+        assert_eq!(color_for_table_header("Open"), Color::empty());
+        assert_eq!(color_for_table_header("In Progress"), Color::FG_YELLOW);
+        assert_eq!(color_for_table_header("Resolved"), Color::FG_BLUE);
+        assert_eq!(color_for_table_header("Closed"), Color::FG_GREEN);
     }
 }
