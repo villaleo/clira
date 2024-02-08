@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, fs};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 
 use crate::models::{DatabaseState, Epic, Status, Story};
 
@@ -101,6 +101,37 @@ impl JiraDatabase {
         state.stories.insert(id, story.clone());
         self.db.write(&state)?;
         Ok(id)
+    }
+
+    /// `update_epic_name` updates the name of the epic `id`. Returns `Err` if epic
+    /// was not found or if there was an error reading/writinig to the database.
+    pub fn update_epic_name(&self, id: u32, name: &str) -> Result<()> {
+        let mut state = self.read()?;
+        if let Some(epic) = state.epics.get(&id) {
+            let mut epic = epic.clone();
+            epic.name = name.to_string();
+            state.epics.insert(id, epic);
+            self.db.write(&state)?;
+        } else {
+            bail!("no epic found for id {}", id)
+        }
+        Ok(())
+    }
+
+    /// `update_epic_description` updates the description of the epic `id`. Returns
+    /// `Err` if epic was not found or if there was an error reading/writinig to
+    /// the database.
+    pub fn update_epic_description(&self, id: u32, description: &str) -> Result<()> {
+        let mut state = self.read()?;
+        if let Some(epic) = state.epics.get(&id) {
+            let mut epic = epic.clone();
+            epic.description = description.to_string();
+            state.epics.insert(id, epic);
+            self.db.write(&state)?;
+        } else {
+            bail!("no epic found for id {}", id)
+        }
+        Ok(())
     }
 
     /// `update_epic_status` updates the status of the epic `id` to the new status `status`. Returns

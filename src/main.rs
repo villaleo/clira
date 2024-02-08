@@ -9,6 +9,7 @@ mod db;
 mod models;
 mod navigator;
 mod ui;
+mod utils;
 
 fn main() {
     let file_path = "data/db.json";

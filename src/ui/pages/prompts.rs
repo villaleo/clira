@@ -1,9 +1,9 @@
 use std::cmp::Ordering;
-use std::io::stdin;
 
 use crate::{
     models::{Epic, Status, Story},
     ui::pages::MAX_NAME_LENGTH,
+    utils::read_input,
 };
 
 /// `Prompt` has different members to display prompts and read user input.
@@ -13,6 +13,8 @@ pub struct Prompt {
     pub create_story: Box<dyn Fn() -> Story>,
     pub delete_epic: Box<dyn Fn() -> bool>,
     pub delete_story: Box<dyn Fn() -> bool>,
+    pub update_name: Box<dyn Fn() -> String>,
+    pub update_description: Box<dyn Fn() -> String>,
     pub update_status: Box<dyn Fn() -> Option<Status>>,
 }
 
@@ -24,6 +26,8 @@ impl Prompt {
             create_story: Box::new(create_story),
             delete_epic: Box::new(delete_epic),
             delete_story: Box::new(delete_story),
+            update_name: Box::new(update_name),
+            update_description: Box::new(update_description),
             update_status: Box::new(update_status),
         }
     }
@@ -91,8 +95,35 @@ fn delete_story() -> bool {
     choice.to_ascii_lowercase().contains('y')
 }
 
+fn update_name() -> String {
+    println!("New name:");
+    let mut name = read_input();
+    loop {
+        match name.len().cmp(&MAX_NAME_LENGTH) {
+            Ordering::Less => {
+                if name.is_empty() {
+                    println!("Name cannot be empty. Please enter a name:");
+                    name = read_input();
+                } else {
+                    break;
+                }
+            }
+            Ordering::Equal | Ordering::Greater => {
+                println!("Names should be short and meaningful. Please provide a shorter name:");
+                name = read_input();
+            }
+        }
+    }
+    name
+}
+
+fn update_description() -> String {
+    println!("New description:");
+    read_input()
+}
+
 fn update_status() -> Option<Status> {
-    println!("Update status:");
+    println!("New status:");
     println!("\t1 - Open\n\t2 - In Progress\n\t3 - Resolved\n\t4 - Closed");
     println!("(x) cancel");
     let choice = read_input();
@@ -103,10 +134,4 @@ fn update_status() -> Option<Status> {
         "4" => Some(Status::Closed),
         _ => None,
     }
-}
-
-fn read_input() -> String {
-    let mut input = String::new();
-    stdin().read_line(&mut input).unwrap();
-    input.trim().into()
 }

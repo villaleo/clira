@@ -13,6 +13,8 @@ pub enum Action {
     NavigateToPreviousPage,
     CreateEpic,
     CreateStory { epic_id: u32 },
+    UpdateEpicName { epic_id: u32 },
+    UpdateEpicDescription { epic_id: u32 },
     UpdateEpicStatus { epic_id: u32 },
     UpdateStoryStatus { story_id: u32 },
     DeleteEpic { epic_id: u32 },

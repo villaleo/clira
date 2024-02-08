@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-mod format;
 pub mod menus;
 pub mod prompts;
 
@@ -21,10 +20,8 @@ use tabled::{
 use crate::{
     db::JiraDatabase,
     models::Action,
-    ui::pages::{
-        format::{color_for_table_header, color_table_column, constrain_text},
-        menus::Menu,
-    },
+    ui::pages::menus::Menu,
+    utils::{color_for_table_header, color_table_column, constrain_text, read_input},
 };
 
 /// A `Page` is a view that can be drawn on the terminal.
@@ -188,9 +185,22 @@ impl Page for EpicDetail {
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>> {
         match input {
             "b" => Ok(Some(Action::NavigateToPreviousPage)),
-            "u" => Ok(Some(Action::UpdateEpicStatus {
-                epic_id: self.epic_id,
-            })),
+            "u" => {
+                println!("Update which field?\n\t1 - Name\n\t2 - Description\n\t3 - Status");
+                println!("(x) cancel");
+                match read_input().as_str() {
+                    "1" => Ok(Some(Action::UpdateEpicName {
+                        epic_id: self.epic_id,
+                    })),
+                    "2" => Ok(Some(Action::UpdateEpicDescription {
+                        epic_id: self.epic_id,
+                    })),
+                    "3" => Ok(Some(Action::UpdateEpicStatus {
+                        epic_id: self.epic_id,
+                    })),
+                    _ => Ok(None),
+                }
+            }
             "d" => Ok(Some(Action::DeleteEpic {
                 epic_id: self.epic_id,
             })),
@@ -386,20 +396,7 @@ mod tests {
 
         #[test]
         fn action_from_update_action_should_succeed() {
-            let db = Rc::new(JiraDatabase {
-                db: Box::new(MockDatabase::new()),
-            });
-            let epic_id = db
-                .create_epic(&Epic::new("Epic 1", "Epic 1 description"))
-                .unwrap();
-            let page = EpicDetail { db, epic_id };
-
-            let update_action = page.action_from("u");
-            assert!(update_action.is_ok());
-            assert_eq!(
-                update_action.unwrap(),
-                Some(Action::UpdateEpicStatus { epic_id })
-            );
+            todo!("rewrite this test to pass")
         }
 
         #[test]

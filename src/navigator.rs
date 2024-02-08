@@ -58,6 +58,14 @@ impl Navigator {
                 let story = (self.prompts.create_story)();
                 self.db.create_story(&story, epic_id)?;
             }
+            Action::UpdateEpicName { epic_id } => {
+                let name = (self.prompts.update_name)();
+                self.db.update_epic_name(epic_id, &name)?;
+            }
+            Action::UpdateEpicDescription { epic_id } => {
+                let description = (self.prompts.update_description)();
+                self.db.update_epic_description(epic_id, &description)?;
+            }
             Action::UpdateEpicStatus { epic_id } => {
                 if let Some(status) = (self.prompts.update_status)() {
                     self.db.update_epic_status(epic_id, status)?;
