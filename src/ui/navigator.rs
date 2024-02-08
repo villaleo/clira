@@ -71,6 +71,14 @@ impl Navigator {
                     self.db.update_epic_status(epic_id, status)?;
                 }
             }
+            Action::UpdateStoryName { story_id } => {
+                let name = (self.prompts.update_name)();
+                self.db.update_story_name(story_id, &name)?;
+            }
+            Action::UpdateStoryDescription { story_id } => {
+                let description = (self.prompts.update_description)();
+                self.db.update_story_description(story_id, &description)?;
+            }
             Action::UpdateStoryStatus { story_id } => {
                 if let Some(status) = (self.prompts.update_status)() {
                     self.db.update_story_status(story_id, status)?;

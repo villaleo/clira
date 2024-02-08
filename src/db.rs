@@ -155,6 +155,37 @@ impl JiraDatabase {
         Ok(())
     }
 
+    /// `update_story_name` updates the name of the story `id`. Returns `Err` if the
+    /// story was not found or if there was an error reading/writing to the database.
+    pub fn update_story_name(&self, id: u32, name: &str) -> Result<()> {
+        let mut state = self.read()?;
+        if let Some(story) = state.stories.get(&id) {
+            let mut story = story.clone();
+            story.name = name.to_string();
+            state.stories.insert(id, story);
+            self.db.write(&state)?;
+            Ok(())
+        } else {
+            bail!("no story found for id {}", id)
+        }
+    }
+
+    /// `update_story_description` updates the description of the story `id`. Returns
+    /// `Err` if the story was not found or if there was an error reading/writing to
+    /// the database.
+    pub fn update_story_description(&self, id: u32, description: &str) -> Result<()> {
+        let mut state = self.read()?;
+        if let Some(story) = state.stories.get(&id) {
+            let mut story = story.clone();
+            story.description = description.to_string();
+            state.stories.insert(id, story);
+            self.db.write(&state)?;
+            Ok(())
+        } else {
+            bail!("no story found for id {}", id)
+        }
+    }
+
     /// `update_story_status` updates the status of the `id` to the new status `status`. Returns
     /// an empty tuple wrapped in a `Result`.
     ///

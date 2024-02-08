@@ -16,6 +16,8 @@ pub enum Action {
     UpdateEpicName { epic_id: u32 },
     UpdateEpicDescription { epic_id: u32 },
     UpdateEpicStatus { epic_id: u32 },
+    UpdateStoryName { story_id: u32 },
+    UpdateStoryDescription { story_id: u32 },
     UpdateStoryStatus { story_id: u32 },
     DeleteEpic { epic_id: u32 },
     DeleteStory { story_id: u32, epic_id: u32 },
