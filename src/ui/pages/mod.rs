@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-pub mod menus;
 pub mod prompts;
 
 use std::{any::Any, rc::Rc};
@@ -8,19 +7,18 @@ use std::{any::Any, rc::Rc};
 use anyhow::anyhow;
 use itertools::Itertools;
 use tabled::{
-    builder,
+    builder::{self, Builder},
     settings::{
         self,
-        object::{Columns, Rows},
+        object::{Columns, Rows, Segment},
         style::LineText,
-        Format,
+        Alignment, Format,
     },
 };
 
 use crate::{
     db::JiraDatabase,
     models::Action,
-    ui::pages::menus::Menu,
     utils::{color_for_table_header, color_table_column, constrain_text, read_input},
 };
 
@@ -28,6 +26,9 @@ use crate::{
 pub trait Page {
     /// `draw` prints the page to the `stdout`.
     fn draw(&self) -> anyhow::Result<()>;
+    /// `draw_menu` draws a menu to the page with all the actions available
+    /// to the user.
+    fn draw_menu(&self);
     /// `action_from` returns an action, depending on the `input`.
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>>;
     /// `as_any` is used to prepare to downcast a trait object to a concrete type.
@@ -88,6 +89,11 @@ impl Page for HomePage {
         println!("{}", table);
         self.draw_menu();
         Ok(())
+    }
+
+    fn draw_menu(&self) {
+        let menu = into_table(&["(q) quit", "(n) new epic", "<ID> view epic"]);
+        println!("\n{}", menu);
     }
 
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>> {
@@ -182,6 +188,17 @@ impl Page for EpicDetail {
         Ok(())
     }
 
+    fn draw_menu(&self) {
+        let menu = into_table(&[
+            "(b) back",
+            "(u) update",
+            "(d) delete",
+            "(n) new story",
+            "<ID> view story",
+        ]);
+        println!("\n{}", menu);
+    }
+
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>> {
         match input {
             "b" => Ok(Some(Action::NavigateToPreviousPage)),
@@ -261,6 +278,11 @@ impl Page for StoryDetail {
         Ok(())
     }
 
+    fn draw_menu(&self) {
+        let menu = into_table(&["(b) back", "(u) update", "(d) delete"]);
+        println!("\n{}", menu);
+    }
+
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>> {
         match input {
             "b" => Ok(Some(Action::NavigateToPreviousPage)),
@@ -278,6 +300,16 @@ impl Page for StoryDetail {
     fn as_any(&self) -> &dyn Any {
         self
     }
+}
+
+fn into_table(opts: &[&str]) -> String {
+    let mut builder = Builder::new();
+    builder.push_record(opts.iter().map(|s| s.to_owned()));
+    builder
+        .build()
+        .with(settings::Modify::new(Segment::all()).with(Alignment::center()))
+        .with(settings::Style::modern_rounded())
+        .to_string()
 }
 
 #[cfg(test)]
