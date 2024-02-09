@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{io::stdin, rc::Rc};
 
 use db::JiraDatabase;

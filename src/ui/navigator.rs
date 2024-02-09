@@ -1,5 +1,3 @@
-#![allow(clippy::borrowed_box)]
-
 use std::rc::Rc;
 
 use crate::{
@@ -10,7 +8,7 @@ use crate::{
 
 pub trait NavigationManager {
     /// `current_page` gets the current page that is rendered on the stack.
-    fn current_page(&self) -> Option<&Box<dyn Page>>;
+    fn current_page(&self) -> Option<&dyn Page>;
     /// `dispatch_action` commits the `action` to the database.
     fn dispatch_action(&mut self, action: Action) -> anyhow::Result<()>;
 }
@@ -32,18 +30,24 @@ impl Navigator {
         }
     }
 
+    #[allow(dead_code)]
+    // `page_count` is used for testing. If `warn(dead_code)` is enabled, then cargo check will incorrectly
+    // report unused code.
     fn page_count(&self) -> usize {
         self.pages.len()
     }
 
+    #[allow(dead_code)]
+    // `set_prompts` is used for testing. If `warn(dead_code)` is enabled, then cargo check will incorrectly
+    // report unused code.
     fn set_prompts(&mut self, prompt: Prompt) {
         self.prompts = prompt;
     }
 }
 
 impl NavigationManager for Navigator {
-    fn current_page(&self) -> Option<&Box<dyn Page>> {
-        self.pages.last()
+    fn current_page(&self) -> Option<&dyn Page> {
+        self.pages.last().map(|page| page.as_ref())
     }
 
     fn dispatch_action(&mut self, action: Action) -> anyhow::Result<()> {
@@ -156,6 +160,9 @@ pub mod test_utils {
         ///     .borrow()
         ///     .epics;
         /// ```
+        #[allow(dead_code)]
+        // `new` is used for testing. If `warn(dead_code)` is enabled, then cargo check will incorrectly
+        // report unused code.
         pub fn new(db: Rc<JiraDatabase>) -> Self {
             Self {
                 pages: vec![Box::new(HomePage { db: db.clone() })],
@@ -167,20 +174,18 @@ pub mod test_utils {
             }
         }
 
-        /// `page_count` returns the number of pages in the stack.
-        pub fn page_count(&self) -> usize {
-            self.pages.len()
-        }
-
         /// `set_prompts` assigns `prompt` to the `MockNavigator`.
+        #[allow(dead_code)]
+        // `set_prompts` is used for testing. If `warn(dead_code)` is enabled, then cargo check will incorrectly
+        // report unused code.
         pub fn set_prompts(&mut self, prompt: Prompt) {
             self.prompts = prompt;
         }
     }
 
     impl NavigationManager for MockNavigator {
-        fn current_page(&self) -> Option<&Box<dyn Page>> {
-            self.pages.last()
+        fn current_page(&self) -> Option<&dyn Page> {
+            self.pages.last().map(|page| page.as_ref())
         }
 
         fn dispatch_action(&mut self, action: Action) -> anyhow::Result<()> {
@@ -386,7 +391,7 @@ mod tests {
         assert_eq!(epic.description, "description");
     }
 
-    // #[test]
+    #[test]
     fn should_create_story() {
         let db = Rc::new(JiraDatabase {
             db: Box::new(MockDatabase::new()),

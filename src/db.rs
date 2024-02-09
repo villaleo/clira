@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{collections::HashMap, fs};
 
 use anyhow::{anyhow, bail, Result};
@@ -284,6 +282,9 @@ pub mod test_utils {
 
     impl MockDatabase {
         /// `new` returns an instance of `MockDatabase` initialized and ready to use.
+        #[allow(dead_code)]
+        // `new` is used for testing. If `warn(dead_code)` is enabled, then cargo check will incorrectly
+        // report unused code.
         pub fn new() -> Self {
             Self {
                 last_written_state: RefCell::new(DatabaseState {

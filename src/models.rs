@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};

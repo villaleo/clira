@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub mod prompts;
 
 use std::{any::Any, rc::Rc};
@@ -402,7 +400,7 @@ mod tests {
     mod epic_detail {
         use crate::{
             models::{Epic, Status, Story},
-            ui::navigator::{test_utils::MockNavigator, NavigationManager, Navigator},
+            ui::navigator::{test_utils::MockNavigator, NavigationManager},
         };
 
         use self::prompts::Prompt;
