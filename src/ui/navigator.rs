@@ -125,8 +125,8 @@ pub mod test_utils {
 
     use super::*;
 
-    /// `MockNavigator` is an implementation of `NavigationManager` with
-    /// public members, used for testing.
+    /// `MockNavigator` is an implementation of `NavigationManager` with public members,
+    /// used for testing. This type used to simulates and test `Navigator`.
     pub struct MockNavigator {
         pub pages: Vec<Box<dyn Page>>,
         pub prompts: Prompt,
@@ -135,7 +135,27 @@ pub mod test_utils {
     }
 
     impl MockNavigator {
-        /// `new` creates a new instance of `MockNavigator` ready to use.
+        /// `new` creates a new instance of `MockNavigator`. Pass an instance of `JiraDatabase`
+        /// instantiated like below:
+        /// ```
+        /// let db = Rc::new(JiraDatabase {
+        ///     db: Box::new(MockDatabase::new()),
+        /// });
+        /// ```
+        /// NOTE: If you do multiple tests in a single `test` function, you will need to shadow the `db`
+        /// variable to create a new instance of `Rc<JiraDatabase>`,
+        ///
+        /// This instance will be moved into `new` and be consumed by the function. If you need
+        /// to access `db` again, you will have to use `state` instead. Here is an example of
+        /// how you can access the database:
+        /// ```
+        /// let mut nav = MockNavigator::new(db); // db is moved into `new`.
+        /// let epics = nav.state
+        ///     .clone()
+        ///     .last_written_state
+        ///     .borrow()
+        ///     .epics;
+        /// ```
         pub fn new(db: Rc<JiraDatabase>) -> Self {
             Self {
                 pages: vec![Box::new(HomePage { db: db.clone() })],
