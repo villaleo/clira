@@ -1,3 +1,5 @@
+#![allow(clippy::borrowed_box)]
+
 use std::rc::Rc;
 
 use crate::{
@@ -5,6 +7,13 @@ use crate::{
     models::Action,
     ui::pages::{prompts::Prompt, EpicDetail, HomePage, Page, StoryDetail},
 };
+
+pub trait NavigationManager {
+    /// `current_page` gets the current page that is rendered on the stack.
+    fn current_page(&self) -> Option<&Box<dyn Page>>;
+    /// `dispatch_action` commits the `action` to the database.
+    fn dispatch_action(&mut self, action: Action) -> anyhow::Result<()>;
+}
 
 /// `Navigator` manages the navigation stack between different pages.
 pub struct Navigator {
@@ -23,14 +32,21 @@ impl Navigator {
         }
     }
 
-    /// `current_page` gets the current page that is rendered on the stack.
-    #[allow(clippy::borrowed_box)]
-    pub fn current_page(&self) -> Option<&Box<dyn Page>> {
+    fn page_count(&self) -> usize {
+        self.pages.len()
+    }
+
+    fn set_prompts(&mut self, prompt: Prompt) {
+        self.prompts = prompt;
+    }
+}
+
+impl NavigationManager for Navigator {
+    fn current_page(&self) -> Option<&Box<dyn Page>> {
         self.pages.last()
     }
 
-    /// `dispatch_action` commits the `action` to the database.
-    pub fn dispatch_action(&mut self, action: Action) -> anyhow::Result<()> {
+    fn dispatch_action(&mut self, action: Action) -> anyhow::Result<()> {
         match action {
             Action::NavigateToEpicDetail { epic_id } => {
                 let page = Box::new(EpicDetail {
@@ -100,13 +116,153 @@ impl Navigator {
         }
         Ok(())
     }
+}
 
-    fn page_count(&self) -> usize {
-        self.pages.len()
+pub mod test_utils {
+    use std::cell::RefCell;
+
+    use crate::db::test_utils::MockDatabase;
+
+    use super::*;
+
+    /// `MockNavigator` is an implementation of `NavigationManager` with
+    /// public members, used for testing.
+    pub struct MockNavigator {
+        pub pages: Vec<Box<dyn Page>>,
+        pub prompts: Prompt,
+        pub db: Rc<JiraDatabase>,
+        pub state: Rc<MockDatabase>,
     }
 
-    fn set_prompts(&mut self, prompt: Prompt) {
-        self.prompts = prompt;
+    impl MockNavigator {
+        /// `new` creates a new instance of `MockNavigator` ready to use.
+        pub fn new(db: Rc<JiraDatabase>) -> Self {
+            Self {
+                pages: vec![Box::new(HomePage { db: db.clone() })],
+                prompts: Prompt::new(),
+                db: db.clone(),
+                state: Rc::new(MockDatabase {
+                    last_written_state: RefCell::new(db.read().unwrap()),
+                }),
+            }
+        }
+
+        /// `page_count` returns the number of pages in the stack.
+        pub fn page_count(&self) -> usize {
+            self.pages.len()
+        }
+
+        /// `set_prompts` assigns `prompt` to the `MockNavigator`.
+        pub fn set_prompts(&mut self, prompt: Prompt) {
+            self.prompts = prompt;
+        }
+    }
+
+    impl NavigationManager for MockNavigator {
+        fn current_page(&self) -> Option<&Box<dyn Page>> {
+            self.pages.last()
+        }
+
+        fn dispatch_action(&mut self, action: Action) -> anyhow::Result<()> {
+            match action {
+                Action::NavigateToEpicDetail { epic_id } => {
+                    let page = Box::new(EpicDetail {
+                        epic_id,
+                        db: self.db.clone(),
+                    });
+                    self.pages.push(page);
+                }
+                Action::NavigateToStoryDetail { story_id, epic_id } => {
+                    let page = Box::new(StoryDetail {
+                        story_id,
+                        epic_id,
+                        db: self.db.clone(),
+                    });
+                    self.pages.push(page);
+                }
+                Action::NavigateToPreviousPage => {
+                    self.pages.pop();
+                }
+                Action::CreateEpic => {
+                    let epic = (self.prompts.create_epic)();
+                    self.db.create_epic(&epic)?;
+                    self.state = Rc::new(MockDatabase {
+                        last_written_state: RefCell::new(self.db.read()?),
+                    });
+                }
+                Action::CreateStory { epic_id } => {
+                    let story = (self.prompts.create_story)();
+                    self.db.create_story(&story, epic_id)?;
+                    self.state = Rc::new(MockDatabase {
+                        last_written_state: RefCell::new(self.db.read()?),
+                    });
+                }
+                Action::UpdateEpicName { epic_id } => {
+                    let name = (self.prompts.update_name)();
+                    self.db.update_epic_name(epic_id, &name)?;
+                    self.state = Rc::new(MockDatabase {
+                        last_written_state: RefCell::new(self.db.read()?),
+                    });
+                }
+                Action::UpdateEpicDescription { epic_id } => {
+                    let description = (self.prompts.update_description)();
+                    self.db.update_epic_description(epic_id, &description)?;
+                    self.state = Rc::new(MockDatabase {
+                        last_written_state: RefCell::new(self.db.read()?),
+                    });
+                }
+                Action::UpdateEpicStatus { epic_id } => {
+                    if let Some(status) = (self.prompts.update_status)() {
+                        self.db.update_epic_status(epic_id, status)?;
+                        self.state = Rc::new(MockDatabase {
+                            last_written_state: RefCell::new(self.db.read()?),
+                        });
+                    }
+                }
+                Action::UpdateStoryName { story_id } => {
+                    let name = (self.prompts.update_name)();
+                    self.db.update_story_name(story_id, &name)?;
+                    self.state = Rc::new(MockDatabase {
+                        last_written_state: RefCell::new(self.db.read()?),
+                    });
+                }
+                Action::UpdateStoryDescription { story_id } => {
+                    let description = (self.prompts.update_description)();
+                    self.db.update_story_description(story_id, &description)?;
+                    self.state = Rc::new(MockDatabase {
+                        last_written_state: RefCell::new(self.db.read()?),
+                    });
+                }
+                Action::UpdateStoryStatus { story_id } => {
+                    if let Some(status) = (self.prompts.update_status)() {
+                        self.db.update_story_status(story_id, status)?;
+                        self.state = Rc::new(MockDatabase {
+                            last_written_state: RefCell::new(self.db.read()?),
+                        });
+                    }
+                }
+                Action::DeleteEpic { epic_id } => {
+                    if (self.prompts.delete_epic)() {
+                        self.db.delete_epic(epic_id)?;
+                        self.state = Rc::new(MockDatabase {
+                            last_written_state: RefCell::new(self.db.read()?),
+                        });
+                        self.pages.pop();
+                    }
+                }
+                Action::DeleteStory { story_id, epic_id } => {
+                    if (self.prompts.delete_story)() {
+                        self.db.delete_story(story_id, epic_id)?;
+                        self.state = Rc::new(MockDatabase {
+                            last_written_state: RefCell::new(self.db.read()?),
+                        });
+                        self.pages.pop();
+                    }
+                }
+                Action::Exit => self.pages.clear(),
+            }
+            Ok(())
+        }
     }
 }
 

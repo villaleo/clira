@@ -3,7 +3,7 @@
 use std::{io::stdin, rc::Rc};
 
 use db::JiraDatabase;
-use ui::navigator::Navigator;
+use ui::navigator::{NavigationManager, Navigator};
 
 mod db;
 mod models;
