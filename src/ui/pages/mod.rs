@@ -564,7 +564,12 @@ mod tests {
     }
 
     mod story_detail {
-        use crate::models::{Epic, Story};
+        use story_detail::tests::prompts::Prompt;
+
+        use crate::{
+            models::{Epic, Status, Story},
+            ui::navigator::{test_utils::MockNavigator, NavigationManager},
+        };
 
         use super::*;
 
@@ -609,9 +614,68 @@ mod tests {
             assert_eq!(back_action.unwrap(), Some(Action::NavigateToPreviousPage));
         }
 
-        // #[test]
+        #[test]
         fn action_from_update_action_should_succeed() {
-            todo!("rewrite this test to pass")
+            let db = Rc::new(JiraDatabase {
+                db: Box::new(MockDatabase::new()),
+            });
+
+            let epic_id = db.create_epic(&Epic::new("name", "description")).unwrap();
+            let story_id = db
+                .create_story(&Story::new("name", "description"), epic_id)
+                .unwrap();
+            let mut nav = MockNavigator::new(db);
+
+            let mut prompts = Prompt::new();
+            prompts.update_name = Box::new(|| "new name".to_string());
+            nav.set_prompts(prompts);
+            let res = nav.dispatch_action(Action::UpdateStoryName { story_id });
+            assert!(res.is_ok());
+            assert_eq!(
+                nav.state
+                    .clone()
+                    .last_written_state
+                    .borrow()
+                    .stories
+                    .get(&story_id)
+                    .unwrap()
+                    .name,
+                "new name".to_string()
+            );
+
+            let mut prompts = Prompt::new();
+            prompts.update_description = Box::new(|| "new description".to_string());
+            nav.set_prompts(prompts);
+            let res = nav.dispatch_action(Action::UpdateStoryDescription { story_id });
+            assert!(res.is_ok());
+            assert_eq!(
+                nav.state
+                    .clone()
+                    .last_written_state
+                    .borrow()
+                    .stories
+                    .get(&story_id)
+                    .unwrap()
+                    .description,
+                "new description".to_string()
+            );
+
+            let mut prompts = Prompt::new();
+            prompts.update_status = Box::new(|| Some(Status::Closed));
+            nav.set_prompts(prompts);
+            let res = nav.dispatch_action(Action::UpdateStoryStatus { story_id });
+            assert!(res.is_ok());
+            assert_eq!(
+                nav.state
+                    .clone()
+                    .last_written_state
+                    .borrow()
+                    .stories
+                    .get(&story_id)
+                    .unwrap()
+                    .status,
+                Status::Closed
+            );
         }
 
         #[test]
