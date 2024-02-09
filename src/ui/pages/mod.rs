@@ -51,8 +51,8 @@ pub struct StoryDetail {
     pub db: Rc<JiraDatabase>,
 }
 
-pub const MAX_NAME_LENGTH: usize = 55;
-pub const MAX_DESCRIPTION_LENGTH: usize = 75;
+pub const MAX_NAME_LENGTH: usize = 30;
+pub const MAX_DESCRIPTION_LENGTH: usize = 55;
 
 impl Page for HomePage {
     fn draw(&self) -> anyhow::Result<()> {
@@ -91,7 +91,7 @@ impl Page for HomePage {
 
     fn draw_menu(&self) {
         let menu = into_table(&["(q) quit", "(n) new epic", "<ID> view epic"]);
-        println!("\n{}", menu);
+        println!("\n\n{}\n\nEnter command:", menu);
     }
 
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>> {
@@ -181,7 +181,7 @@ impl Page for EpicDetail {
             .modify(Columns::single(2), Format::content(color_table_column))
             .to_string();
 
-        println!("{}", table);
+        println!("\n{}", table);
         self.draw_menu();
         Ok(())
     }
@@ -194,7 +194,7 @@ impl Page for EpicDetail {
             "(n) new story",
             "<ID> view story",
         ]);
-        println!("\n{}", menu);
+        println!("\n\n{}\n\nEnter command:", menu);
     }
 
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>> {
@@ -263,7 +263,7 @@ impl Page for StoryDetail {
 
     fn draw_menu(&self) {
         let menu = into_table(&["(b) back", "(u) update", "(d) delete"]);
-        println!("\n{}", menu);
+        println!("\n\n{}\n\nEnter command:", menu);
     }
 
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>> {
