@@ -1,7 +1,9 @@
-use std::{io::stdin, rc::Rc};
+use std::rc::Rc;
 
 use db::JiraDatabase;
 use ui::navigator::{NavigationManager, Navigator};
+
+use crate::utils::read_input;
 
 mod db;
 mod models;
@@ -44,10 +46,4 @@ fn main() {
             break;
         }
     }
-}
-
-fn read_input() -> String {
-    let mut input = String::new();
-    stdin().read_line(&mut input).unwrap();
-    input.trim().into()
 }
