@@ -400,7 +400,12 @@ mod tests {
     }
 
     mod epic_detail {
-        use crate::models::{Epic, Story};
+        use crate::{
+            models::{Epic, Status, Story},
+            ui::navigator::{test_utils::MockNavigator, NavigationManager, Navigator},
+        };
+
+        use self::prompts::Prompt;
 
         use super::*;
 
@@ -431,9 +436,64 @@ mod tests {
             assert_eq!(back_action.unwrap(), Some(Action::NavigateToPreviousPage));
         }
 
-        // #[test]
+        #[test]
         fn action_from_update_action_should_succeed() {
-            todo!("rewrite this test to pass")
+            let db = Rc::new(JiraDatabase {
+                db: Box::new(MockDatabase::new()),
+            });
+            let epic_id = db.create_epic(&Epic::new("name", "description")).unwrap();
+            let mut nav = MockNavigator::new(db);
+
+            let mut prompts = Prompt::new();
+            prompts.update_name = Box::new(|| "new name".to_string());
+            nav.set_prompts(prompts);
+            let res = nav.dispatch_action(Action::UpdateEpicName { epic_id });
+            assert!(res.is_ok());
+            assert_eq!(
+                nav.state
+                    .clone()
+                    .last_written_state
+                    .borrow()
+                    .epics
+                    .get(&epic_id)
+                    .unwrap()
+                    .name,
+                "new name".to_string()
+            );
+
+            let mut prompts = Prompt::new();
+            prompts.update_description = Box::new(|| "new description".to_string());
+            nav.set_prompts(prompts);
+            let res = nav.dispatch_action(Action::UpdateEpicDescription { epic_id });
+            assert!(res.is_ok());
+            assert_eq!(
+                nav.state
+                    .clone()
+                    .last_written_state
+                    .borrow()
+                    .epics
+                    .get(&epic_id)
+                    .unwrap()
+                    .description,
+                "new description".to_string()
+            );
+
+            let mut prompts = Prompt::new();
+            prompts.update_status = Box::new(|| Some(Status::Closed));
+            nav.set_prompts(prompts);
+            let res = nav.dispatch_action(Action::UpdateEpicStatus { epic_id });
+            assert!(res.is_ok());
+            assert_eq!(
+                nav.state
+                    .clone()
+                    .last_written_state
+                    .borrow()
+                    .epics
+                    .get(&epic_id)
+                    .unwrap()
+                    .status,
+                Status::Closed
+            );
         }
 
         #[test]

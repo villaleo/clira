@@ -279,7 +279,7 @@ pub mod test_utils {
     /// `MockDatabase` is a wrapper over the state of a database. It uses the interior
     /// mutability design pattern to keep `JiraDatabase`'s immutability state.
     pub struct MockDatabase {
-        last_written_state: RefCell<DatabaseState>,
+        pub last_written_state: RefCell<DatabaseState>,
     }
 
     impl MockDatabase {
