@@ -7,8 +7,8 @@ use crate::{
 /// `Prompt` has different members to display prompts and read user input.
 /// It acts as a level of indirection for testability.
 pub struct Prompt {
-    pub create_epic: Box<dyn Fn() -> Epic>,
-    pub create_story: Box<dyn Fn() -> Story>,
+    pub create_epic: Box<dyn Fn() -> Option<Epic>>,
+    pub create_story: Box<dyn Fn() -> Option<Story>>,
     pub delete_epic: Box<dyn Fn() -> bool>,
     pub delete_story: Box<dyn Fn() -> bool>,
     pub update_name: Box<dyn Fn() -> String>,
@@ -31,11 +31,14 @@ impl Prompt {
     }
 }
 
-fn create_epic() -> Epic {
-    println!("Epic name:");
+fn create_epic() -> Option<Epic> {
+    println!("Enter Epic name: ((x) cancel and discard)");
     let name: String = loop {
         match read_line() {
             Some(name) => {
+                if name.to_lowercase() == "x" {
+                    return None;
+                }
                 if name.len() >= MAX_NAME_LENGTH {
                     println!(
                         "Epic names should be short and meaningful. Please provide a shorter name:"
@@ -47,21 +50,29 @@ fn create_epic() -> Epic {
             None => continue,
         }
     };
-    println!("Epic description:");
+    println!("Enter Epic description: ((x) cancel and discard)");
     let description: String = loop {
         match read_line() {
-            Some(description) => break description,
+            Some(description) => {
+                if description.to_lowercase() == "x" {
+                    return None;
+                }
+                break description;
+            }
             None => continue,
         }
     };
-    Epic::new(&name, &description)
+    Some(Epic::new(&name, &description))
 }
 
-fn create_story() -> Story {
-    println!("Story name:");
+fn create_story() -> Option<Story> {
+    println!("Enter Story name: ((x) cancel and discard)");
     let name: String = loop {
         match read_line() {
             Some(name) => {
+                if name.to_lowercase() == "x" {
+                    return None;
+                }
                 if name.len() >= MAX_NAME_LENGTH {
                     println!(
                         "Story names should be short and meaningful. Please provide a shorter name:"
@@ -73,14 +84,19 @@ fn create_story() -> Story {
             None => continue,
         }
     };
-    println!("Story description:");
+    println!("Enter Story description: ((x) cancel and discard)");
     let description: String = loop {
         match read_line() {
-            Some(description) => break description,
+            Some(description) => {
+                if description.to_lowercase() == "x" {
+                    return None;
+                }
+                break description;
+            }
             None => continue,
         }
     };
-    Story::new(&name, &description)
+    Some(Story::new(&name, &description))
 }
 
 fn delete_epic() -> bool {
