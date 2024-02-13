@@ -133,12 +133,14 @@ impl NavigationManager for Navigator {
                 self.pages.pop();
             }
             Action::CreateEpic => {
-                let epic = (self.prompts.create_epic)();
-                self.db.create_epic(&epic)?;
+                if let Some(epic) = (self.prompts.create_epic)() {
+                    self.db.create_epic(&epic)?;
+                }
             }
             Action::CreateStory { epic_id } => {
-                let story = (self.prompts.create_story)();
-                self.db.create_story(&story, epic_id)?;
+                if let Some(story) = (self.prompts.create_story)() {
+                    self.db.create_story(&story, epic_id)?;
+                }
             }
             Action::UpdateEpicName { epic_id } => {
                 let name = (self.prompts.update_name)();
@@ -273,18 +275,20 @@ pub mod test_utils {
                     self.pages.pop();
                 }
                 Action::CreateEpic => {
-                    let epic = (self.prompts.create_epic)();
-                    self.db.create_epic(&epic)?;
-                    self.state = Rc::new(MockDatabase {
-                        last_written_state: RefCell::new(self.db.read()?),
-                    });
+                    if let Some(epic) = (self.prompts.create_epic)() {
+                        self.db.create_epic(&epic)?;
+                        self.state = Rc::new(MockDatabase {
+                            last_written_state: RefCell::new(self.db.read()?),
+                        });
+                    }
                 }
                 Action::CreateStory { epic_id } => {
-                    let story = (self.prompts.create_story)();
-                    self.db.create_story(&story, epic_id)?;
-                    self.state = Rc::new(MockDatabase {
-                        last_written_state: RefCell::new(self.db.read()?),
-                    });
+                    if let Some(story) = (self.prompts.create_story)() {
+                        self.db.create_story(&story, epic_id)?;
+                        self.state = Rc::new(MockDatabase {
+                            last_written_state: RefCell::new(self.db.read()?),
+                        });
+                    }
                 }
                 Action::UpdateEpicName { epic_id } => {
                     let name = (self.prompts.update_name)();
@@ -440,7 +444,7 @@ mod tests {
             db: Box::new(MockDatabase::new()),
         });
         let mut prompts = Prompt::new();
-        prompts.create_epic = Box::new(|| Epic::new("name", "description"));
+        prompts.create_epic = Box::new(|| Some(Epic::new("name", "description")));
         let mut nav = Navigator::new(db.clone());
         nav.set_prompts(prompts);
 
@@ -456,13 +460,30 @@ mod tests {
     }
 
     #[test]
+    fn should_no_op_on_create_epic_cancelled() {
+        let db = Rc::new(JiraDatabase {
+            db: Box::new(MockDatabase::new()),
+        });
+        let mut prompts = Prompt::new();
+        prompts.create_epic = Box::new(|| None);
+        let mut nav = Navigator::new(db.clone());
+        nav.set_prompts(prompts);
+
+        let res = nav.dispatch_action(Action::CreateEpic);
+        assert!(res.is_ok());
+
+        let epics = &db.read().unwrap().epics;
+        assert!(epics.is_empty());
+    }
+
+    #[test]
     fn should_create_story() {
         let db = Rc::new(JiraDatabase {
             db: Box::new(MockDatabase::new()),
         });
         let epic_id = db.create_epic(&Epic::new("name", "description")).unwrap();
         let mut prompts = Prompt::new();
-        prompts.create_story = Box::new(|| Story::new("name", "description"));
+        prompts.create_story = Box::new(|| Some(Story::new("name", "description")));
         let mut nav = Navigator::new(db.clone());
         nav.set_prompts(prompts);
 
@@ -475,6 +496,24 @@ mod tests {
         let (_, story) = stories.iter().next().unwrap();
         assert_eq!(story.name, "name");
         assert_eq!(story.description, "description");
+    }
+
+    #[test]
+    fn should_no_op_on_create_story_cancelled() {
+        let db = Rc::new(JiraDatabase {
+            db: Box::new(MockDatabase::new()),
+        });
+        let epic_id = db.create_epic(&Epic::new("name", "description")).unwrap();
+        let mut prompts = Prompt::new();
+        prompts.create_story = Box::new(|| None);
+        let mut nav = Navigator::new(db.clone());
+        nav.set_prompts(prompts);
+
+        let res = nav.dispatch_action(Action::CreateStory { epic_id });
+        assert!(res.is_ok());
+
+        let stories = &db.read().unwrap().stories;
+        assert!(stories.is_empty());
     }
 
     #[test]
