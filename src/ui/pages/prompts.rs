@@ -85,7 +85,7 @@ fn create_story() -> Story {
 
 fn delete_epic() -> bool {
     println!("Delete this Epic? All Stories in this Epic will also be deleted.");
-    println!("(y) yes | (n) no");
+    println!("\t(y) yes | (n) no");
     read_line()
         .unwrap_or("".into())
         .to_ascii_lowercase()
@@ -94,7 +94,7 @@ fn delete_epic() -> bool {
 
 fn delete_story() -> bool {
     println!("Delete this Story?");
-    println!("(y) yes | (n) no");
+    println!("\t(y) yes | (n) no");
     read_line()
         .unwrap_or("".into())
         .to_ascii_lowercase()

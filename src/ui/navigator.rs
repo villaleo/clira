@@ -1,8 +1,10 @@
 use std::rc::Rc;
 
+use anyhow::anyhow;
+
 use crate::{
     db::JiraDatabase,
-    models::Action,
+    models::{Action, Status},
     ui::pages::{prompts::Prompt, EpicDetail, HomePage, Page, StoryDetail},
 };
 
@@ -18,6 +20,14 @@ pub struct Navigator {
     pages: Vec<Box<dyn Page>>,
     prompts: Prompt,
     db: Rc<JiraDatabase>,
+}
+
+/// A Feature represents the different types of features in the program.
+/// It is used to avoid repeating logic for the different types of
+/// features.
+enum Feature {
+    Epic(u32),
+    Story(u32),
 }
 
 impl Navigator {
@@ -42,6 +52,58 @@ impl Navigator {
     // report unused code.
     fn set_prompts(&mut self, prompt: Prompt) {
         self.prompts = prompt;
+    }
+
+    /// `auto_update_epic_status` updates an Epic's status based on its children Stories.
+    /// Epics are updated based on the `feature`'s id. The status of the Epic is updated
+    /// based on the following conditions, where the higher conditions have higher
+    /// precedence:
+    /// - All stories Closed => Closed
+    /// - All stories Resolved or Closed => Resolved
+    /// - All stories Open => Open
+    /// - Otherwise => In Progress
+    fn auto_update_epic_status(&self, feat: Feature) -> anyhow::Result<()> {
+        let state = self.db.read()?;
+        let (epic_id, epic) = match feat {
+            Feature::Epic(ref epic_id) => (
+                epic_id,
+                state.epics.get(epic_id).ok_or(anyhow!("epic not found"))?,
+            ),
+            Feature::Story(story_id) => state
+                .epics
+                .iter()
+                .find(|(_, epic)| epic.story_ids.contains(&story_id))
+                .ok_or(anyhow!("epic not found"))?,
+        };
+        let stories: Vec<_> = epic
+            .story_ids
+            .iter()
+            .filter_map(|id| state.stories.get(id))
+            .collect();
+        if stories.is_empty() {
+            self.db.update_epic_status(*epic_id, Status::Open)?;
+            return Ok(());
+        }
+        let status = if stories
+            .iter()
+            .all(|story| matches!(story.status, Status::Closed))
+        {
+            Status::Closed
+        } else if stories
+            .iter()
+            .all(|story| matches!(story.status, Status::Resolved | Status::Closed))
+        {
+            Status::Resolved
+        } else if stories
+            .iter()
+            .all(|story| matches!(story.status, Status::Open))
+        {
+            Status::Open
+        } else {
+            Status::InProgress
+        };
+        self.db.update_epic_status(*epic_id, status)?;
+        Ok(())
     }
 }
 
@@ -102,6 +164,7 @@ impl NavigationManager for Navigator {
             Action::UpdateStoryStatus { story_id } => {
                 if let Some(status) = (self.prompts.update_status)() {
                     self.db.update_story_status(story_id, status)?;
+                    self.auto_update_epic_status(Feature::Story(story_id))?;
                 }
             }
             Action::DeleteEpic { epic_id } => {
@@ -113,6 +176,7 @@ impl NavigationManager for Navigator {
             Action::DeleteStory { story_id, epic_id } => {
                 if (self.prompts.delete_story)() {
                     self.db.delete_story(story_id, epic_id)?;
+                    self.auto_update_epic_status(Feature::Epic(epic_id))?;
                     self.pages.pop();
                 }
             }
