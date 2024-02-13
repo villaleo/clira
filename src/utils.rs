@@ -4,12 +4,18 @@ use tabled::settings::Color;
 
 use crate::models::Status;
 
-/// `read_input` reads an entire line from `stdin` and returns a new, trimmed
-/// version with the leading and trailing whitespace removed.
-pub fn read_input() -> String {
+/// `read_line` reads an entire line from `stdin` and returns `Some` string with
+/// the leading and trailing whitespace removed. `None` is returned if an empty
+/// string is read.
+pub fn read_line() -> Option<String> {
     let mut input = String::new();
     stdin().read_line(&mut input).unwrap();
-    input.trim().into()
+    let input = input.trim().to_string();
+    if input.is_empty() {
+        None
+    } else {
+        Some(input)
+    }
 }
 
 /// `constrain_text` breaks a long, single-line string into a multi-line string

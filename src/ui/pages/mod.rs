@@ -17,7 +17,7 @@ use tabled::{
 use crate::{
     db::JiraDatabase,
     models::Action,
-    utils::{color_for_table_header, color_table_column, constrain_text, read_input},
+    utils::{color_for_table_header, color_table_column, constrain_text, read_line},
 };
 
 /// A `Page` is a view that can be drawn on the terminal.
@@ -294,9 +294,10 @@ fn into_table(opts: &[&str]) -> String {
 }
 
 fn update_epic(epic_id: u32) -> Option<Action> {
-    println!("Update which field?\n\t1 - Name\n\t2 - Description\n\t3 - Status");
+    println!("Update which field?\n\t(1) Name\n\t(2) Description\n\t(3) Status");
     println!("(x) cancel");
-    match read_input().as_str() {
+
+    match read_line().unwrap_or("".into()).as_str() {
         "1" => Some(Action::UpdateEpicName { epic_id }),
         "2" => Some(Action::UpdateEpicDescription { epic_id }),
         "3" => Some(Action::UpdateEpicStatus { epic_id }),
@@ -305,9 +306,10 @@ fn update_epic(epic_id: u32) -> Option<Action> {
 }
 
 fn update_story(story_id: u32) -> Option<Action> {
-    println!("Update which field?\n\t1 - Name\n\t2 - Description\n\t3 - Status");
+    println!("Update which field?\n\t(1) Name\n\t(2) Description\n\t(3) Status");
     println!("(x) cancel");
-    match read_input().as_str() {
+
+    match read_line().unwrap_or("".into()).as_str() {
         "1" => Some(Action::UpdateStoryName { story_id }),
         "2" => Some(Action::UpdateStoryDescription { story_id }),
         "3" => Some(Action::UpdateStoryStatus { story_id }),

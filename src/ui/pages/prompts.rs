@@ -1,9 +1,7 @@
-use std::cmp::Ordering;
-
 use crate::{
     models::{Epic, Status, Story},
     ui::pages::MAX_NAME_LENGTH,
-    utils::read_input,
+    utils::read_line,
 };
 
 /// `Prompt` has different members to display prompts and read user input.
@@ -34,100 +32,103 @@ impl Prompt {
 }
 
 fn create_epic() -> Epic {
-    println!("Enter name:");
-    let mut name = read_input();
-    loop {
-        match name.len().cmp(&MAX_NAME_LENGTH) {
-            Ordering::Less => {
-                if name.is_empty() {
-                    println!("Name cannot be empty. Please enter a name:");
-                    name = read_input();
+    println!("Epic name:");
+    let name: String = loop {
+        match read_line() {
+            Some(name) => {
+                if name.len() >= MAX_NAME_LENGTH {
+                    println!(
+                        "Epic names should be short and meaningful. Please provide a shorter name:"
+                    );
                 } else {
-                    break;
+                    break name;
                 }
             }
-            Ordering::Equal | Ordering::Greater => {
-                println!("Names should be short and meaningful. Please provide a shorter name:");
-                name = read_input();
-            }
+            None => continue,
         }
-    }
-    println!("Enter description:");
-    let description = read_input();
+    };
+    println!("Epic description:");
+    let description: String = loop {
+        match read_line() {
+            Some(description) => break description,
+            None => continue,
+        }
+    };
     Epic::new(&name, &description)
 }
 
 fn create_story() -> Story {
-    println!("Enter name:");
-    let mut name = read_input();
-    loop {
-        match name.len().cmp(&MAX_NAME_LENGTH) {
-            Ordering::Less => {
-                if name.is_empty() {
-                    println!("Name cannot be empty. Please enter a name:");
-                    name = read_input();
+    println!("Story name:");
+    let name: String = loop {
+        match read_line() {
+            Some(name) => {
+                if name.len() >= MAX_NAME_LENGTH {
+                    println!(
+                        "Story names should be short and meaningful. Please provide a shorter name:"
+                    );
                 } else {
-                    break;
+                    break name;
                 }
             }
-            Ordering::Equal | Ordering::Greater => {
-                println!("Names should be short and meaningful. Please provide a shorter name:");
-                name = read_input();
-            }
+            None => continue,
         }
-    }
-    println!("Enter description:");
-    let description = read_input();
+    };
+    println!("Story description:");
+    let description: String = loop {
+        match read_line() {
+            Some(description) => break description,
+            None => continue,
+        }
+    };
     Story::new(&name, &description)
 }
 
 fn delete_epic() -> bool {
-    println!("Delete this epic? All stories in this epic will also be deleted.");
+    println!("Delete this Epic? All Stories in this Epic will also be deleted.");
     println!("(y) yes | (n) no");
-    let choice = read_input();
-    choice.to_ascii_lowercase().contains('y')
+    read_line()
+        .unwrap_or("".into())
+        .to_ascii_lowercase()
+        .contains('y')
 }
 
 fn delete_story() -> bool {
-    println!("Delete this story?");
+    println!("Delete this Story?");
     println!("(y) yes | (n) no");
-    let choice = read_input();
-    choice.to_ascii_lowercase().contains('y')
+    read_line()
+        .unwrap_or("".into())
+        .to_ascii_lowercase()
+        .contains('y')
 }
 
 fn update_name() -> String {
     println!("New name:");
-    let mut name = read_input();
     loop {
-        match name.len().cmp(&MAX_NAME_LENGTH) {
-            Ordering::Less => {
-                if name.is_empty() {
-                    println!("Name cannot be empty. Please enter a name:");
-                    name = read_input();
+        match read_line() {
+            Some(name) => {
+                if name.len() >= MAX_NAME_LENGTH {
+                    println!(
+                        "Story names should be short and meaningful. Please provide a shorter name:"
+                    );
                 } else {
-                    break;
+                    break name;
                 }
             }
-            Ordering::Equal | Ordering::Greater => {
-                println!("Names should be short and meaningful. Please provide a shorter name:");
-                name = read_input();
-            }
+            None => continue,
         }
     }
-    name
 }
 
 fn update_description() -> String {
     println!("New description:");
-    read_input()
+    read_line().unwrap_or("".into())
 }
 
 fn update_status() -> Option<Status> {
     println!("New status:");
-    println!("\t1 - Open\n\t2 - In Progress\n\t3 - Resolved\n\t4 - Closed");
+    println!("\t(1) Open\n\t(2) In Progress\n\t(3) Resolved\n\t(4) Closed");
     println!("(x) cancel");
-    let choice = read_input();
-    match choice.as_str() {
+    match read_line().unwrap_or("".into()).as_str() {
         "1" => Some(Status::Open),
         "2" => Some(Status::InProgress),
         "3" => Some(Status::Resolved),
