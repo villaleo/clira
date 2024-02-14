@@ -8,6 +8,8 @@ use crate::{
     ui::pages::{prompts::Prompt, EpicDetail, HomePage, Page, StoryDetail},
 };
 
+use super::pages::TaskDetail;
+
 pub trait NavigationManager {
     /// `current_page` gets the current page that is rendered on the stack.
     fn current_page(&self) -> Option<&dyn Page>;
@@ -129,6 +131,14 @@ impl NavigationManager for Navigator {
                 });
                 self.pages.push(page);
             }
+            Action::NavigateToTaskDetail { task_id, story_id } => {
+                let page = Box::new(TaskDetail {
+                    task_id,
+                    story_id,
+                    db: self.db.clone(),
+                });
+                self.pages.push(page);
+            }
             Action::NavigateToPreviousPage => {
                 self.pages.pop();
             }
@@ -140,6 +150,11 @@ impl NavigationManager for Navigator {
             Action::CreateStory { epic_id } => {
                 if let Some(story) = (self.prompts.create_story)() {
                     self.db.create_story(&story, epic_id)?;
+                }
+            }
+            Action::CreateTask { story_id } => {
+                if let Some(task) = (self.prompts.create_task)() {
+                    self.db.create_task(&task, story_id)?;
                 }
             }
             Action::UpdateEpicName { epic_id } => {
@@ -169,6 +184,20 @@ impl NavigationManager for Navigator {
                     self.auto_update_epic_status(Feature::Story(story_id))?;
                 }
             }
+            Action::UpdateTaskName { task_id } => {
+                let name = (self.prompts.update_name)();
+                self.db.update_task_name(task_id, &name)?;
+            }
+            Action::UpdateTaskDescription { task_id } => {
+                let description = (self.prompts.update_description)();
+                self.db.update_task_description(task_id, &description)?;
+            }
+            Action::UpdateTaskStatus { task_id } => {
+                if let Some(status) = (self.prompts.update_status)() {
+                    self.db.update_task_status(task_id, status)?;
+                    // TODO: Auto update the parent Story's status
+                }
+            }
             Action::DeleteEpic { epic_id } => {
                 if (self.prompts.delete_epic)() {
                     self.db.delete_epic(epic_id)?;
@@ -179,6 +208,13 @@ impl NavigationManager for Navigator {
                 if (self.prompts.delete_story)() {
                     self.db.delete_story(story_id, epic_id)?;
                     self.auto_update_epic_status(Feature::Epic(epic_id))?;
+                    self.pages.pop();
+                }
+            }
+            Action::DeleteTask { task_id, story_id } => {
+                if (self.prompts.delete_task)() {
+                    self.db.delete_task(task_id, story_id)?;
+                    // TODO: Auto update the parent Story's status
                     self.pages.pop();
                 }
             }
@@ -271,6 +307,14 @@ pub mod test_utils {
                     });
                     self.pages.push(page);
                 }
+                Action::NavigateToTaskDetail { task_id, story_id } => {
+                    let page = Box::new(TaskDetail {
+                        task_id,
+                        story_id,
+                        db: self.db.clone(),
+                    });
+                    self.pages.push(page);
+                }
                 Action::NavigateToPreviousPage => {
                     self.pages.pop();
                 }
@@ -285,6 +329,14 @@ pub mod test_utils {
                 Action::CreateStory { epic_id } => {
                     if let Some(story) = (self.prompts.create_story)() {
                         self.db.create_story(&story, epic_id)?;
+                        self.state = Rc::new(MockDatabase {
+                            last_written_state: RefCell::new(self.db.read()?),
+                        });
+                    }
+                }
+                Action::CreateTask { story_id } => {
+                    if let Some(task) = (self.prompts.create_task)() {
+                        self.db.create_task(&task, story_id)?;
                         self.state = Rc::new(MockDatabase {
                             last_written_state: RefCell::new(self.db.read()?),
                         });
@@ -334,6 +386,28 @@ pub mod test_utils {
                         });
                     }
                 }
+                Action::UpdateTaskName { task_id } => {
+                    let name = (self.prompts.update_name)();
+                    self.db.update_task_name(task_id, &name)?;
+                    self.state = Rc::new(MockDatabase {
+                        last_written_state: RefCell::new(self.db.read()?),
+                    });
+                }
+                Action::UpdateTaskDescription { task_id } => {
+                    let description = (self.prompts.update_description)();
+                    self.db.update_task_description(task_id, &description)?;
+                    self.state = Rc::new(MockDatabase {
+                        last_written_state: RefCell::new(self.db.read()?),
+                    });
+                }
+                Action::UpdateTaskStatus { task_id } => {
+                    if let Some(status) = (self.prompts.update_status)() {
+                        self.db.update_task_status(task_id, status)?;
+                        self.state = Rc::new(MockDatabase {
+                            last_written_state: RefCell::new(self.db.read()?),
+                        });
+                    }
+                }
                 Action::DeleteEpic { epic_id } => {
                     if (self.prompts.delete_epic)() {
                         self.db.delete_epic(epic_id)?;
@@ -346,6 +420,15 @@ pub mod test_utils {
                 Action::DeleteStory { story_id, epic_id } => {
                     if (self.prompts.delete_story)() {
                         self.db.delete_story(story_id, epic_id)?;
+                        self.state = Rc::new(MockDatabase {
+                            last_written_state: RefCell::new(self.db.read()?),
+                        });
+                        self.pages.pop();
+                    }
+                }
+                Action::DeleteTask { task_id, story_id } => {
+                    if (self.prompts.delete_task)() {
+                        self.db.delete_task(task_id, story_id)?;
                         self.state = Rc::new(MockDatabase {
                             last_written_state: RefCell::new(self.db.read()?),
                         });

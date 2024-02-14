@@ -8,17 +8,23 @@ use serde::{Deserialize, Serialize};
 pub enum Action {
     NavigateToEpicDetail { epic_id: u32 },
     NavigateToStoryDetail { story_id: u32, epic_id: u32 },
+    NavigateToTaskDetail { task_id: u32, story_id: u32 },
     NavigateToPreviousPage,
     CreateEpic,
     CreateStory { epic_id: u32 },
+    CreateTask { story_id: u32 },
     UpdateEpicName { epic_id: u32 },
     UpdateEpicDescription { epic_id: u32 },
     UpdateEpicStatus { epic_id: u32 },
     UpdateStoryName { story_id: u32 },
     UpdateStoryDescription { story_id: u32 },
     UpdateStoryStatus { story_id: u32 },
+    UpdateTaskName { task_id: u32 },
+    UpdateTaskDescription { task_id: u32 },
+    UpdateTaskStatus { task_id: u32 },
     DeleteEpic { epic_id: u32 },
     DeleteStory { story_id: u32, epic_id: u32 },
+    DeleteTask { task_id: u32, story_id: u32 },
     Exit,
 }
 
@@ -30,6 +36,7 @@ pub struct DatabaseState {
     pub last_item_id: Option<u32>,
     pub epics: HashMap<u32, Epic>,
     pub stories: HashMap<u32, Story>,
+    pub tasks: HashMap<u32, Task>,
 }
 
 /// `Status` models the different states that an `Epic` or `Story` can be in. `Open` is
@@ -67,6 +74,17 @@ pub struct Story {
     pub name: String,
     pub description: String,
     pub status: Status,
+    #[serde(rename = "taskIds")]
+    pub task_ids: Vec<u32>,
+}
+
+/// A `Task` is an atomic child of a `Story`. Tasks represent bits of a Story that can be broken
+/// down into smaller, achievable units. Each task must have a parent `Story`.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct Task {
+    pub name: String,
+    pub description: String,
+    pub status: Status,
 }
 
 impl Epic {
@@ -81,6 +99,17 @@ impl Epic {
 }
 
 impl Story {
+    pub fn new(name: &str, description: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            description: description.to_owned(),
+            status: Status::Open,
+            task_ids: vec![],
+        }
+    }
+}
+
+impl Task {
     pub fn new(name: &str, description: &str) -> Self {
         Self {
             name: name.to_owned(),

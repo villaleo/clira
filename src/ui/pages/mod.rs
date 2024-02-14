@@ -51,6 +51,13 @@ pub struct StoryDetail {
     pub db: Rc<JiraDatabase>,
 }
 
+/// `TaskDetail` is a page with details of a task.
+pub struct TaskDetail {
+    pub task_id: u32,
+    pub story_id: u32,
+    pub db: Rc<JiraDatabase>,
+}
+
 pub const MAX_NAME_LENGTH: usize = 30;
 pub const MAX_DESCRIPTION_LENGTH: usize = 55;
 
@@ -257,6 +264,117 @@ impl Page for StoryDetail {
             .to_string();
 
         println!("{}", table);
+
+        let mut task_ids = story.task_ids.clone();
+        if task_ids.is_empty() {
+            println!("\n  This Story has no Tasks. Create a new Task with `n`.");
+            self.draw_menu();
+            return Ok(());
+        }
+
+        let mut builder = builder::Builder::new();
+        builder.push_record(["ID", "Name", "Status"]);
+
+        task_ids.sort();
+        for id in task_ids {
+            let task = db
+                .tasks
+                .get(&id)
+                .ok_or_else(|| anyhow!("could not find task"))?;
+            builder.push_record([
+                id.to_string(),
+                constrain_text(task.name.as_str(), MAX_NAME_LENGTH),
+                constrain_text(&task.status.to_string(), MAX_DESCRIPTION_LENGTH),
+            ]);
+        }
+
+        let table = builder
+            .build()
+            .with(settings::Style::rounded())
+            .with(
+                LineText::new(
+                    format!("Tasks ({} total)", &story.task_ids.len()),
+                    Rows::first(),
+                )
+                .offset(2),
+            )
+            .modify(Columns::single(2), Format::content(color_table_column))
+            .to_string();
+
+        println!("\n{}", table);
+        self.draw_menu();
+        Ok(())
+    }
+
+    fn draw_menu(&self) {
+        let menu = into_table(&[
+            "(b) back",
+            "(u) update",
+            "(n) new task",
+            "(d) delete",
+            "<ID> view task",
+        ]);
+        println!("\n\n{}\n\nEnter command:", menu);
+    }
+
+    fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>> {
+        match input {
+            "b" => Ok(Some(Action::NavigateToPreviousPage)),
+            "u" => Ok(update_story(self.story_id)),
+            "n" => Ok(Some(Action::CreateTask {
+                story_id: self.story_id,
+            })),
+            "d" => Ok(Some(Action::DeleteStory {
+                story_id: self.story_id,
+                epic_id: self.epic_id,
+            })),
+            id => {
+                if let Ok(task_id) = id.parse::<u32>() {
+                    if self.db.read()?.tasks.contains_key(&task_id) {
+                        return Ok(Some(Action::NavigateToTaskDetail {
+                            task_id,
+                            story_id: self.story_id,
+                        }));
+                    }
+                }
+                Ok(None)
+            }
+        }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl Page for TaskDetail {
+    fn draw(&self) -> anyhow::Result<()> {
+        let db = self.db.read()?;
+        let mut builder = builder::Builder::new();
+        builder.push_record(["Name", "Description"]);
+        let task = db
+            .tasks
+            .get(&self.task_id)
+            .ok_or_else(|| anyhow!("could not find task"))?;
+        builder.push_record([
+            constrain_text(&task.name, MAX_NAME_LENGTH),
+            constrain_text(&task.description, MAX_DESCRIPTION_LENGTH),
+        ]);
+        let table = builder
+            .build()
+            .with(settings::Style::rounded())
+            .with(LineText::new(format!("Task #{} (", &self.task_id), Rows::first()).offset(2))
+            .with(
+                LineText::new(format!("{}", &task.status), Rows::first())
+                    .color(color_for_table_header(&task.status.to_string()))
+                    .offset(2 + format!("Task #{} (", &self.task_id).len()),
+            )
+            .with(
+                LineText::new(")", Rows::first())
+                    .offset(2 + format!("Task #{} ({}", &self.task_id, &task.status).len()),
+            )
+            .to_string();
+        println!("{}", table);
         self.draw_menu();
         Ok(())
     }
@@ -269,10 +387,10 @@ impl Page for StoryDetail {
     fn action_from(&self, input: &str) -> anyhow::Result<Option<Action>> {
         match input {
             "b" => Ok(Some(Action::NavigateToPreviousPage)),
-            "u" => Ok(update_story(self.story_id)),
-            "d" => Ok(Some(Action::DeleteStory {
+            "u" => Ok(update_task(self.task_id)),
+            "d" => Ok(Some(Action::DeleteTask {
+                task_id: self.task_id,
                 story_id: self.story_id,
-                epic_id: self.epic_id,
             })),
             _ => Ok(None),
         }
@@ -313,6 +431,18 @@ fn update_story(story_id: u32) -> Option<Action> {
         "1" => Some(Action::UpdateStoryName { story_id }),
         "2" => Some(Action::UpdateStoryDescription { story_id }),
         "3" => Some(Action::UpdateStoryStatus { story_id }),
+        _ => None,
+    }
+}
+
+fn update_task(task_id: u32) -> Option<Action> {
+    println!("Update which field?\n\t(1) Name\n\t(2) Description\n\t(3) Status");
+    println!("(x) cancel");
+
+    match read_line().unwrap_or("".into()).as_str() {
+        "1" => Some(Action::UpdateTaskName { task_id }),
+        "2" => Some(Action::UpdateTaskDescription { task_id }),
+        "3" => Some(Action::UpdateTaskStatus { task_id }),
         _ => None,
     }
 }
@@ -720,6 +850,186 @@ mod tests {
                 db,
             };
 
+            let unknown_action = page.action_from("unknown");
+            assert!(unknown_action.is_ok());
+            assert!(unknown_action.unwrap().is_none());
+        }
+    }
+
+    mod task_detail {
+        use std::rc::Rc;
+
+        use crate::{
+            db::test_utils::MockDatabase,
+            models::{Epic, Status, Story, Task},
+            ui::{
+                navigator::{test_utils::MockNavigator, NavigationManager},
+                pages::{tests::Action, Page},
+            },
+        };
+
+        use super::{prompts::Prompt, JiraDatabase, TaskDetail};
+
+        #[test]
+        fn draw_should_succeed() {
+            let db = Rc::new(JiraDatabase {
+                db: Box::new(MockDatabase::new()),
+            });
+            let epic_id = db
+                .create_epic(&Epic::new("epic name", "epic description"))
+                .unwrap();
+            let story_id = db
+                .create_story(&Story::new("story name", "story description"), epic_id)
+                .unwrap();
+            let task_id = db
+                .create_task(&Task::new("task name", "task description"), story_id)
+                .unwrap();
+            let page = TaskDetail {
+                task_id,
+                story_id,
+                db,
+            };
+            assert!(page.draw().is_ok());
+        }
+
+        #[test]
+        fn action_from_back_action_should_succeed() {
+            let db = Rc::new(JiraDatabase {
+                db: Box::new(MockDatabase::new()),
+            });
+            let epic_id = db
+                .create_epic(&Epic::new("epic name", "epic description"))
+                .unwrap();
+            let story_id = db
+                .create_story(&Story::new("story name", "story description"), epic_id)
+                .unwrap();
+            let task_id = db
+                .create_task(&Task::new("task name", "task description"), story_id)
+                .unwrap();
+            let page = TaskDetail {
+                task_id,
+                story_id,
+                db,
+            };
+            let back_action = page.action_from("b");
+            assert!(back_action.is_ok());
+            assert_eq!(back_action.unwrap(), Some(Action::NavigateToPreviousPage));
+        }
+
+        #[test]
+        fn action_from_update_action_should_succeed() {
+            let db = Rc::new(JiraDatabase {
+                db: Box::new(MockDatabase::new()),
+            });
+            let epic_id = db
+                .create_epic(&Epic::new("epic name", "epic description"))
+                .unwrap();
+            let story_id = db
+                .create_story(&Story::new("story name", "story description"), epic_id)
+                .unwrap();
+            let task_id = db
+                .create_task(&Task::new("task name", "task description"), story_id)
+                .unwrap();
+            let mut nav = MockNavigator::new(db);
+
+            let mut prompts = Prompt::new();
+            prompts.update_name = Box::new(|| "new name".to_string());
+            nav.set_prompts(prompts);
+            let res = nav.dispatch_action(Action::UpdateTaskName { task_id });
+            assert!(res.is_ok());
+            assert_eq!(
+                nav.state
+                    .clone()
+                    .last_written_state
+                    .borrow()
+                    .tasks
+                    .get(&task_id)
+                    .unwrap()
+                    .name,
+                "new name".to_string()
+            );
+
+            let mut prompts = Prompt::new();
+            prompts.update_description = Box::new(|| "new description".to_string());
+            nav.set_prompts(prompts);
+            let res = nav.dispatch_action(Action::UpdateTaskDescription { task_id });
+            assert!(res.is_ok());
+            assert_eq!(
+                nav.state
+                    .clone()
+                    .last_written_state
+                    .borrow()
+                    .tasks
+                    .get(&task_id)
+                    .unwrap()
+                    .description,
+                "new description".to_string()
+            );
+
+            let mut prompts = Prompt::new();
+            prompts.update_status = Box::new(|| Some(Status::InProgress));
+            nav.set_prompts(prompts);
+            let res = nav.dispatch_action(Action::UpdateTaskStatus { task_id });
+            assert!(res.is_ok());
+            assert_eq!(
+                nav.state
+                    .clone()
+                    .last_written_state
+                    .borrow()
+                    .tasks
+                    .get(&task_id)
+                    .unwrap()
+                    .status,
+                Status::InProgress
+            );
+        }
+
+        #[test]
+        fn action_from_delete_action_should_succeed() {
+            let db = Rc::new(JiraDatabase {
+                db: Box::new(MockDatabase::new()),
+            });
+            let epic_id = db
+                .create_epic(&Epic::new("epic name", "epic description"))
+                .unwrap();
+            let story_id = db
+                .create_story(&Story::new("story name", "story description"), epic_id)
+                .unwrap();
+            let task_id = db
+                .create_task(&Task::new("task name", "task description"), story_id)
+                .unwrap();
+            let page = TaskDetail {
+                task_id,
+                story_id,
+                db,
+            };
+            let delete_action = page.action_from("d");
+            assert!(delete_action.is_ok());
+            assert_eq!(
+                delete_action.unwrap(),
+                Some(Action::DeleteTask { task_id, story_id })
+            );
+        }
+
+        #[test]
+        fn action_from_unknown_action_should_do_nothing() {
+            let db = Rc::new(JiraDatabase {
+                db: Box::new(MockDatabase::new()),
+            });
+            let epic_id = db
+                .create_epic(&Epic::new("epic name", "epic description"))
+                .unwrap();
+            let story_id = db
+                .create_story(&Story::new("story name", "story description"), epic_id)
+                .unwrap();
+            let task_id = db
+                .create_task(&Task::new("task name", "task description"), story_id)
+                .unwrap();
+            let page = TaskDetail {
+                task_id,
+                story_id,
+                db,
+            };
             let unknown_action = page.action_from("unknown");
             assert!(unknown_action.is_ok());
             assert!(unknown_action.unwrap().is_none());

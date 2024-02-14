@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs};
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::models::{DatabaseState, Epic, Status, Story};
+use crate::models::{DatabaseState, Epic, Status, Story, Task};
 
 /// `JiraDatabase` is the main database for the application to interact with. There should be at
 /// most one instance of this type. Instances need not be mutable.
@@ -38,6 +38,7 @@ impl JiraDatabase {
                 last_item_id: None,
                 epics: HashMap::new(),
                 stories: HashMap::new(),
+                tasks: HashMap::new(),
             })?;
         }
         Ok(Self { db: Box::new(db) })
@@ -97,6 +98,29 @@ impl JiraDatabase {
 
         state.last_item_id = Some(id);
         state.stories.insert(id, story.clone());
+        self.db.write(&state)?;
+        Ok(id)
+    }
+
+    /// `create_task` creates a new Task with Story `story_id` as the parent. Returns the Tasks'
+    /// id id `Ok`. If `Err` is returned, there was an issue reading/writing to db or the
+    /// `story_id` is invalid.
+    pub fn create_task(&self, task: &Task, story_id: u32) -> Result<u32> {
+        let mut state = self.read()?;
+        let id = if let Some(prev_id) = state.last_item_id {
+            prev_id + 1
+        } else {
+            0u32
+        };
+        let mut story = state
+            .stories
+            .get(&story_id)
+            .ok_or(anyhow!("no story found for id {}", story_id))
+            .cloned()?;
+        story.task_ids.push(id);
+        state.stories.insert(story_id, story);
+        state.last_item_id = Some(id);
+        state.tasks.insert(id, task.clone());
         self.db.write(&state)?;
         Ok(id)
     }
@@ -205,6 +229,51 @@ impl JiraDatabase {
         Ok(())
     }
 
+    /// `update_task_name` updates the name of Task `id` to `name`. Returns `Err` if
+    /// there was an error reading/writing to db or if `id` was invalid.
+    pub fn update_task_name(&self, id: u32, name: &str) -> Result<()> {
+        let mut state = self.read()?;
+        let mut task = state
+            .tasks
+            .get(&id)
+            .ok_or(anyhow!("no task found for id {}", id))
+            .cloned()?;
+        task.name = name.into();
+        state.tasks.insert(id, task);
+        self.db.write(&state)?;
+        Ok(())
+    }
+
+    /// `update_task_description` updates the description of Task `id` to `description`.
+    /// Returns `Err` if there was an error reading/writing to db or if `id` was invalid.
+    pub fn update_task_description(&self, id: u32, description: &str) -> Result<()> {
+        let mut state = self.read()?;
+        let mut task = state
+            .tasks
+            .get(&id)
+            .ok_or(anyhow!("no task found for id {}", id))
+            .cloned()?;
+        task.description = description.into();
+        state.tasks.insert(id, task);
+        self.db.write(&state)?;
+        Ok(())
+    }
+
+    /// `update_task_status` updates the status of Task `id` to `status`. Returns `Err` if
+    /// there was an error reading/writing to db or if `id` was invalid.
+    pub fn update_task_status(&self, id: u32, status: Status) -> Result<()> {
+        let mut state = self.read()?;
+        let mut task = state
+            .tasks
+            .get(&id)
+            .ok_or(anyhow!("no task found for id {}", id))
+            .cloned()?;
+        task.status = status.clone();
+        state.tasks.insert(id, task);
+        self.db.write(&state)?;
+        Ok(())
+    }
+
     /// `delete_epic` deletes the epic corresponding to `id`. Returns an empty tuple wrapped in a
     /// `Result`.
     ///
@@ -252,6 +321,29 @@ impl JiraDatabase {
         self.db.write(&state)?;
         Ok(())
     }
+
+    /// `delete_task` deletes Task `task_id` from parent Story `story_id`. Returns
+    /// `Err` if there was an error reading/writing to db or if `task_id` or
+    /// `story_id` was invalid.
+    pub fn delete_task(&self, task_id: u32, story_id: u32) -> Result<()> {
+        let mut state = self.db.read()?;
+        let mut story = state
+            .stories
+            .get(&story_id)
+            .ok_or(anyhow!("no story found for id {}", story_id))?
+            .clone();
+        let (index, _) = story
+            .task_ids
+            .iter()
+            .enumerate()
+            .find(|(_, id)| *id == &task_id)
+            .ok_or(anyhow!("no task found for id {}", task_id))?;
+        story.task_ids.remove(index);
+        state.stories.insert(story_id, story);
+        state.tasks.remove(&task_id);
+        self.db.write(&state)?;
+        Ok(())
+    }
 }
 
 impl Database for JSONFileDatabase {
@@ -291,6 +383,7 @@ pub mod test_utils {
                     last_item_id: None,
                     epics: HashMap::new(),
                     stories: HashMap::new(),
+                    tasks: HashMap::new(),
                 }),
             }
         }
@@ -482,7 +575,7 @@ mod tests {
         #[test]
         fn read_should_fail_with_invalid_json() {
             let mut file = tempfile::NamedTempFile::new().unwrap();
-            let malformed_data = r#"{ "lastItemId": null, "epics": {} "stories": {} }"#;
+            let malformed_data = r#"{ "lastItemId": null, "epics": {} "stories": {} "tasks": {} }"#;
             write!(file, "{}", malformed_data).unwrap();
 
             let file_path = file.path().to_str().unwrap();
@@ -495,7 +588,7 @@ mod tests {
         #[test]
         fn read_should_parse_json_file() {
             let mut file = tempfile::NamedTempFile::new().unwrap();
-            let data = r#"{ "lastItemId": null, "epics": {}, "stories": {} }"#;
+            let data = r#"{ "lastItemId": null, "epics": {}, "stories": {}, "tasks": {} }"#;
             write!(file, "{}", data).unwrap();
 
             let file_path = file.path().to_str().unwrap();
@@ -522,11 +615,15 @@ mod tests {
             let epic = Epic::new("Epic 1", "Epic 1 description");
             let mut epics = HashMap::<u32, Epic>::new();
             epics.insert(1, epic);
+            let task = Task::new("Task 1", "Task 1 description");
+            let mut tasks = HashMap::<u32, Task>::new();
+            tasks.insert(2, task);
 
             let state = DatabaseState {
                 last_item_id: Some(1u32),
                 epics,
                 stories,
+                tasks,
             };
             assert!(db.write(&state).is_ok());
             assert_eq!(db.read().unwrap(), state);
