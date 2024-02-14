@@ -1,6 +1,14 @@
 {
-  "lastItemId": 29,
+  "lastItemId": 36,
   "epics": {
+    "13": {
+      "name": "Tasks",
+      "description": "Some stories can be broken down into smaller parts. These parts are called Tasks and they each have a name, description, status, and parent (story).",
+      "status": "inProgress",
+      "storyIds": [
+        30
+      ]
+    },
     "10": {
       "name": "Bugs and Known Issues",
       "description": "Known bugs that need to be fixed.",
@@ -9,14 +17,13 @@
         11
       ]
     },
-    "0": {
-      "name": "UI/UX",
-      "description": "Ensure the output of `draw` methods result in pretty tables and clean, descriptive output.",
-      "status": "closed",
+    "8": {
+      "name": "Quality of Life",
+      "description": "A few small changes and additions that would improve the UI and UX.",
+      "status": "resolved",
       "storyIds": [
-        1,
-        3,
-        4
+        9,
+        12
       ]
     },
     "5": {
@@ -28,25 +35,14 @@
         7
       ]
     },
-    "13": {
-      "name": "Tasks",
-      "description": "Some stories can be broken down into smaller parts. These parts are called Tasks and they each have a name, description, status, and parent (story).",
-      "status": "open",
+    "0": {
+      "name": "UI/UX",
+      "description": "Ensure the output of `draw` methods result in pretty tables and clean, descriptive output.",
+      "status": "closed",
       "storyIds": [
-        24,
-        26,
-        27,
-        28,
-        29
-      ]
-    },
-    "8": {
-      "name": "Quality of Life",
-      "description": "A few small changes and additions that would improve the UI and UX.",
-      "status": "resolved",
-      "storyIds": [
-        9,
-        12
+        1,
+        3,
+        4
       ]
     }
   },
@@ -54,67 +50,95 @@
     "12": {
       "name": "Autoupdate Epic Status",
       "description": "Update an Epic's status depending on the status of each of its children Stories.",
-      "status": "closed"
-    },
-    "11": {
-      "name": "Ugly Table When No Epics",
-      "description": "The table is drawn horribly and superfluosly when there are no epics to list. Replace this with a message, notifying the user that there are no epics.",
-      "status": "closed"
-    },
-    "3": {
-      "name": "Different Table Appearance",
-      "description": "Experiment with different tables to draw the stories and epics.",
-      "status": "resolved"
-    },
-    "9": {
-      "name": "New Feature Input Can be Cancelled",
-      "description": "There is an option to cancel when creating a new epic or story.",
-      "status": "resolved"
+      "status": "closed",
+      "taskIds": []
     },
     "1": {
       "name": "Break Long Descriptions",
       "description": "Restrict the length of long descriptions to a fixed size for consistency and a cleaner look.",
-      "status": "closed"
+      "status": "closed",
+      "taskIds": []
     },
-    "26": {
-      "name": "Create TaskDetail model",
-      "description": "Present a Task's details similar to displaying other features.",
-      "status": "open"
+    "3": {
+      "name": "Different Table Appearance",
+      "description": "Experiment with different tables to draw the stories and epics.",
+      "status": "resolved",
+      "taskIds": []
     },
-    "28": {
-      "name": "Update Navigator",
-      "description": "Add missing arms for TaskDetail",
-      "status": "open"
+    "9": {
+      "name": "New Feature Input Can be Cancelled",
+      "description": "There is an option to cancel when creating a new epic or story.",
+      "status": "resolved",
+      "taskIds": []
     },
-    "29": {
-      "name": "Update Prompts",
-      "description": "Create prompts for Tasks",
-      "status": "open"
-    },
-    "24": {
-      "name": "Create Task model",
-      "description": "A Task has the same attributes as an Epic and Story.",
-      "status": "open"
-    },
-    "7": {
-      "name": "Modifyable Story",
-      "description": "Stories can have their name and descriptions updated as well, when typing `u` on StoryDetail page.",
-      "status": "closed"
-    },
-    "27": {
-      "name": "Implement Page for TaskDetail",
-      "description": "A TaskDetail can be viewed and navigated like other features.",
-      "status": "open"
+    "11": {
+      "name": "Ugly Table When No Epics",
+      "description": "The table is drawn horribly and superfluosly when there are no epics to list. Replace this with a message, notifying the user that there are no epics.",
+      "status": "closed",
+      "taskIds": []
     },
     "4": {
       "name": "Colored Status",
       "description": "Experiment with colored status options! Why does color affect the width of strings?",
-      "status": "closed"
+      "status": "closed",
+      "taskIds": []
+    },
+    "30": {
+      "name": "Support Tasks",
+      "description": "Users should be able to work with Tasks similar to how Stories are worked with.",
+      "status": "inProgress",
+      "taskIds": [
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ]
+    },
+    "7": {
+      "name": "Modifyable Story",
+      "description": "Stories can have their name and descriptions updated as well, when typing `u` on StoryDetail page.",
+      "status": "closed",
+      "taskIds": []
     },
     "6": {
       "name": "Modifyable Epic",
       "description": "Epics can have their name and description updated when using `u` option on EpicDetail page.",
-      "status": "closed"
+      "status": "closed",
+      "taskIds": []
+    }
+  },
+  "tasks": {
+    "35": {
+      "name": "Create Tests",
+      "description": "Create new tests to verify new functionality.",
+      "status": "resolved"
+    },
+    "33": {
+      "name": "Implement Page for TaskDetail",
+      "description": "Add all the methods required from Page trait.",
+      "status": "resolved"
+    },
+    "32": {
+      "name": "Create TaskDetail stuct",
+      "description": "TaskDetail has the information needed to view the details of a Task.",
+      "status": "resolved"
+    },
+    "36": {
+      "name": "Manual Testing",
+      "description": "Test, build, and run the project. Make sure the new feature works as intended.",
+      "status": "inProgress"
+    },
+    "31": {
+      "name": "Create Task struct",
+      "description": "Create a model for the Task.",
+      "status": "resolved"
+    },
+    "34": {
+      "name": "Fix any Errors",
+      "description": "Fix errors caused by new code additions...",
+      "status": "resolved"
     }
   }
 }
